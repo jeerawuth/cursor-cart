@@ -1,0 +1,35 @@
+.navbar {
+  background: #222;
+  padding: 1rem 2rem;
+}
+.navbar ul {
+  list-style: none;
+  display: flex;
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+}
+.navbar a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.navbar a:hover {
+  color: #ffd700;
+}
+.cartCount {
+  color: #ffd700;
+  font-weight: bold;
+  margin-left: 2px;
+}
+.logoutBtn {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  margin: 0 0 0 8px;
+  text-decoration: underline;
+} 
