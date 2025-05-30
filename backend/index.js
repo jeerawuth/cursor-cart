@@ -92,15 +92,15 @@ app.get('/profile', auth, (req, res) => {
 
 // PUT /profile
 app.put('/profile', auth, (req, res) => {
-  const { name, role } = req.body;
+  const { name, role, address } = req.body;
   if (!name) return res.status(400).json({ error: 'ข้อมูลไม่ครบ' });
   const newRole = role || req.user.role;
-  db.updateUser(req.user.id, name, newRole, (err, updated) => {
+  db.updateUser(req.user.id, name, newRole, address, (err, updated) => {
     if (err) {
       console.error('updateUser error:', err);
       return res.status(500).json({ error: err.message });
     }
-    res.json({ message: 'อัปเดตข้อมูลสำเร็จ', user: { id: req.user.id, email: req.user.email, name, role: newRole } });
+    res.json({ message: 'อัปเดตข้อมูลสำเร็จ', user: { id: req.user.id, email: req.user.email, name, role: newRole, address } });
   });
 });
 
@@ -162,6 +162,103 @@ app.delete('/products/:id', (req, res) => {
       return res.status(500).json({ error: 'Failed to delete product' });
     }
     res.json({ message: 'ลบสินค้าสำเร็จ', id });
+  });
+});
+
+// --- ORDER SYSTEM ---
+// POST /orders - สร้างคำสั่งซื้อ (เฉพาะผู้ใช้ล็อกอิน)
+app.post('/orders', auth, (req, res) => {
+  const { shipping_name, shipping_address, items } = req.body;
+  if (!shipping_name || !shipping_address || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'ข้อมูลไม่ครบหรือไม่มีสินค้าในคำสั่งซื้อ' });
+  }
+  db.addOrder(req.user.id, shipping_name, shipping_address, items, (err, order) => {
+    if (err) {
+      console.error('addOrder error:', err);
+      return res.status(500).json({ error: 'ไม่สามารถสร้างคำสั่งซื้อได้' });
+    }
+    res.status(201).json({ message: 'สร้างคำสั่งซื้อสำเร็จ', order });
+  });
+});
+
+// GET /orders - ดูคำสั่งซื้อของตนเอง
+app.get('/orders', auth, (req, res) => {
+  db.getOrdersByUser(req.user.id, (err, rows) => {
+    if (err) {
+      console.error('getOrdersByUser error:', err);
+      return res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลคำสั่งซื้อ' });
+    }
+    // รวมกลุ่ม order_items ตาม order
+    const orders = {};
+    rows.forEach(row => {
+      if (!orders[row.id]) {
+        orders[row.id] = {
+          id: row.id,
+          shipping_name: row.shipping_name,
+          shipping_address: row.shipping_address,
+          status: row.status,
+          created_at: row.created_at,
+          items: []
+        };
+      }
+      if (row.item_id) {
+        orders[row.id].items.push({
+          id: row.item_id,
+          product_id: row.product_id,
+          quantity: row.quantity,
+          price: row.price
+        });
+      }
+    });
+    res.json(Object.values(orders));
+  });
+});
+
+// GET /admin/orders - ดูคำสั่งซื้อทั้งหมด (admin เท่านั้น)
+app.get('/admin/orders', auth, requireRole('admin'), (req, res) => {
+  db.getAllOrders((err, rows) => {
+    if (err) {
+      console.error('getAllOrders error:', err);
+      return res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลคำสั่งซื้อ' });
+    }
+    // รวมกลุ่ม order_items ตาม order
+    const orders = {};
+    rows.forEach(row => {
+      if (!orders[row.id]) {
+        orders[row.id] = {
+          id: row.id,
+          user_id: row.user_id,
+          user_email: row.user_email,
+          shipping_name: row.shipping_name,
+          shipping_address: row.shipping_address,
+          status: row.status,
+          created_at: row.created_at,
+          items: []
+        };
+      }
+      if (row.item_id) {
+        orders[row.id].items.push({
+          id: row.item_id,
+          product_id: row.product_id,
+          quantity: row.quantity,
+          price: row.price
+        });
+      }
+    });
+    res.json(Object.values(orders));
+  });
+});
+
+// PUT /admin/orders/:id - อัปเดตสถานะคำสั่งซื้อ (admin เท่านั้น)
+app.put('/admin/orders/:id', auth, requireRole('admin'), (req, res) => {
+  const { status } = req.body;
+  if (!status) return res.status(400).json({ error: 'กรุณาระบุสถานะใหม่' });
+  db.updateOrderStatus(req.params.id, status, (err, result) => {
+    if (err) {
+      console.error('updateOrderStatus error:', err);
+      return res.status(500).json({ error: 'ไม่สามารถอัปเดตสถานะคำสั่งซื้อ' });
+    }
+    res.json({ message: 'อัปเดตสถานะสำเร็จ', result });
   });
 });
 

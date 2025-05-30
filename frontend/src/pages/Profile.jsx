@@ -30,6 +30,14 @@ const Profile = () => {
       <h2>โปรไฟล์ผู้ใช้</h2>
       <p><b>ชื่อ:</b> {user.name}</p>
       <p><b>อีเมล:</b> {user.email}</p>
+      {user.address && (
+        <p><b>ที่อยู่:</b> {user.address}</p>
+      )}
+      <div style={{marginTop:16}}>
+        <a href="/edit-profile">
+          <button type="button">แก้ไขโปรไฟล์</button>
+        </a>
+      </div>
     </div>
   );
 };

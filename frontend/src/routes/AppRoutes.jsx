@@ -9,6 +9,9 @@ import Profile from '../pages/Profile';
 import AdminLogin from '../admin/AdminLogin';
 import AdminDashboard from '../admin/AdminDashboard';
 import AdminProductManager from '../admin/AdminProductManager';
+import Orders from '../pages/Orders';
+import AdminOrderManager from '../admin/AdminOrderManager';
+import EditProfile from '../pages/EditProfile';
 import Signup from '../pages/Signup';
 import { useAuthStore } from '../store/authStore';
 
@@ -32,6 +35,9 @@ const AppRoutes = () => (
     <Route path="/admin/login" element={<AdminLogin />} />
     <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
     <Route path="/admin/products" element={<AdminRoute><AdminProductManager /></AdminRoute>} />
+    <Route path="/admin/orders" element={<AdminRoute><AdminOrderManager /></AdminRoute>} />
+    <Route path="/orders" element={<Orders />} />
+    <Route path="/edit-profile" element={<EditProfile />} />
     <Route path="/signup" element={<Signup />} />
   </Routes>
 );

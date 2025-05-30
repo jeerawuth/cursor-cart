@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 export const useAuthStore = create((set) => ({
+
   user: null,
   token: localStorage.getItem('token') || null,
   setAuth: (user, token) => {
@@ -29,3 +30,8 @@ export const useAuthStore = create((set) => ({
     }
   }
 }));
+
+// โหลด user อัตโนมัติถ้ามี token ใน localStorage
+if (localStorage.getItem('token')) {
+  useAuthStore.getState().fetchUser();
+}

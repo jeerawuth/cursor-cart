@@ -59,6 +59,12 @@ const Cart = () => {
             </ul>
             <p>รวมทั้งหมด: {total} บาท</p>
             <button onClick={handleClear}>ล้างตะกร้า</button>
+            <br />
+            <a href="/checkout" style={{textDecoration:'none'}}>
+              <button style={{marginTop: 12, background: '#4caf50', color: 'white', padding: '8px 24px', fontSize: 16}}>
+                Checkout
+              </button>
+            </a>
             <a href="/checkout">ไปชำระเงิน</a>
           </>
         )}
