@@ -47,5 +47,31 @@ module.exports = {
   },
   getAllProducts(cb) {
     db.all('SELECT * FROM products', cb);
+  },
+  addProduct(product, cb) {
+    db.run(
+      'INSERT INTO products (title, price, description, category, image, rating_rate, rating_count) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [product.title, product.price, product.description, product.category, product.image, product.rating_rate, product.rating_count],
+      function(err) {
+        if (err) return cb(err);
+        cb(null, { id: this.lastID, ...product });
+      }
+    );
+  },
+  updateProduct(id, product, cb) {
+    db.run(
+      'UPDATE products SET title = ?, price = ?, description = ?, category = ?, image = ?, rating_rate = ?, rating_count = ? WHERE id = ?',
+      [product.title, product.price, product.description, product.category, product.image, product.rating_rate, product.rating_count, id],
+      function(err) {
+        if (err) return cb(err);
+        cb(null, { id, ...product });
+      }
+    );
+  },
+  deleteProduct(id, cb) {
+    db.run('DELETE FROM products WHERE id = ?', [id], function(err) {
+      if (err) return cb(err);
+      cb(null, { id });
+    });
   }
 }; 

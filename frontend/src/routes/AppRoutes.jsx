@@ -8,6 +8,7 @@ import Login from '../pages/Login';
 import Profile from '../pages/Profile';
 import AdminLogin from '../admin/AdminLogin';
 import AdminDashboard from '../admin/AdminDashboard';
+import AdminProductManager from '../admin/AdminProductManager';
 import Signup from '../pages/Signup';
 import { useAuthStore } from '../store/authStore';
 
@@ -30,6 +31,7 @@ const AppRoutes = () => (
     <Route path="/profile" element={<Profile />} />
     <Route path="/admin/login" element={<AdminLogin />} />
     <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+    <Route path="/admin/products" element={<AdminRoute><AdminProductManager /></AdminRoute>} />
     <Route path="/signup" element={<Signup />} />
   </Routes>
 );

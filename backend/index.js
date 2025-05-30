@@ -126,6 +126,45 @@ app.get('/products', (req, res) => {
   });
 });
 
+// POST /products - เพิ่มสินค้าใหม่
+app.post('/products', (req, res) => {
+  const { title, price, description, category, image, rating_rate, rating_count } = req.body;
+  if (!title || price == null) return res.status(400).json({ error: 'กรุณาระบุชื่อสินค้าและราคา' });
+  db.addProduct({ title, price, description, category, image, rating_rate, rating_count }, (err, product) => {
+    if (err) {
+      console.error('Error adding product:', err.message);
+      return res.status(500).json({ error: 'Failed to add product' });
+    }
+    res.status(201).json(product);
+  });
+});
+
+// PUT /products/:id - แก้ไขสินค้า
+app.put('/products/:id', (req, res) => {
+  const id = req.params.id;
+  const { title, price, description, category, image, rating_rate, rating_count } = req.body;
+  if (!title || price == null) return res.status(400).json({ error: 'กรุณาระบุชื่อสินค้าและราคา' });
+  db.updateProduct(id, { title, price, description, category, image, rating_rate, rating_count }, (err, product) => {
+    if (err) {
+      console.error('Error updating product:', err.message);
+      return res.status(500).json({ error: 'Failed to update product' });
+    }
+    res.json(product);
+  });
+});
+
+// DELETE /products/:id - ลบสินค้า
+app.delete('/products/:id', (req, res) => {
+  const id = req.params.id;
+  db.deleteProduct(id, (err) => {
+    if (err) {
+      console.error('Error deleting product:', err.message);
+      return res.status(500).json({ error: 'Failed to delete product' });
+    }
+    res.json({ message: 'ลบสินค้าสำเร็จ', id });
+  });
+});
+
 // ตัวอย่าง route /admin (อนุญาตเฉพาะ admin)
 app.get('/admin', auth, requireRole('admin'), (req, res) => {
   res.json({ message: 'Welcome admin!', user: req.user });
