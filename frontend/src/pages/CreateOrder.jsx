@@ -28,7 +28,7 @@ export default function CreateOrder({ cartItems, onOrderSuccess, profile }) {
       }
       // Validate cart items
       const items = cartItems.map(item => ({
-        product_id: item.id,
+        product_id: item.product_id || item.id,
         quantity: item.qty ?? item.quantity,
         price: item.price
       }));

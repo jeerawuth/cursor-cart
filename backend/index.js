@@ -211,25 +211,30 @@ app.delete('/products/:id', (req, res) => {
 // POST /orders - สร้างคำสั่งซื้อ (เฉพาะผู้ใช้ล็อกอิน)
 app.post('/orders', auth, (req, res) => {
   const { shipping_name, shipping_address, items } = req.body;
+  console.log('[POST /orders] payload:', { shipping_name, shipping_address, items });
   if (!shipping_name || !shipping_address || !Array.isArray(items) || items.length === 0) {
+    console.warn('[POST /orders] Reject: ข้อมูลไม่ครบหรือไม่มีสินค้าในคำสั่งซื้อ', { shipping_name, shipping_address, items });
     return res.status(400).json({ error: 'ข้อมูลไม่ครบหรือไม่มีสินค้าในคำสั่งซื้อ' });
   }
   db.addOrder(req.user.id, shipping_name, shipping_address, items, (err, order) => {
     if (err) {
-      console.error('addOrder error:', err);
-      return res.status(500).json({ error: 'ไม่สามารถสร้างคำสั่งซื้อได้' });
+      console.error('[POST /orders] addOrder error:', err, '\nuser:', req.user, '\npayload:', { shipping_name, shipping_address, items });
+      return res.status(500).json({ error: 'ไม่สามารถสร้างคำสั่งซื้อได้', detail: err.message });
     }
+    console.log('[POST /orders] Order created:', order);
     res.status(201).json({ message: 'สร้างคำสั่งซื้อสำเร็จ', order });
   });
 });
 
 // GET /orders - ดูคำสั่งซื้อของตนเอง
 app.get('/orders', auth, (req, res) => {
+  console.log('[GET /orders] user.id:', req.user.id);
   db.getOrdersByUser(req.user.id, (err, rows) => {
     if (err) {
       console.error('getOrdersByUser error:', err);
       return res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลคำสั่งซื้อ' });
     }
+    console.log('[GET /orders] raw rows:', rows);
     // รวมกลุ่ม order_items ตาม order
     const orders = {};
     rows.forEach(row => {

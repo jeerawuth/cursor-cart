@@ -1,31 +1,84 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { fetchProducts } from '../api/products';
 
 export default function Orders() {
+  const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const user = useAuthStore(state => state.user);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const { user, token, isLoading: isAuthLoading } = useAuthStore();
 
   useEffect(() => {
-    async function fetchOrders() {
+    // Redirect to login if not authenticated
+    if (!isAuthLoading && !token) {
+      navigate('/login');
+      return;
+    }
+
+    const fetchData = async () => {
       try {
-        const res = await axios.get('http://localhost:4000/orders', {
-          headers: { Authorization: `Bearer ${user?.token}` },
-        });
-        setOrders(res.data);
+        setIsLoading(true);
+        
+        // Fetch products and orders in parallel
+        const [productsData, ordersResponse] = await Promise.all([
+          fetchProducts(),
+          fetch('http://localhost:4000/orders', {
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          })
+        ]);
+
+        if (!ordersResponse.ok) {
+          throw new Error('ไม่สามารถดึงข้อมูลคำสั่งซื้อได้');
+        }
+
+        const ordersData = await ordersResponse.json();
+        setProducts(productsData);
+        setOrders(Array.isArray(ordersData) ? ordersData : []);
+        setError('');
       } catch (err) {
+        console.error('Error fetching orders:', err);
+        setError(err.message || 'เกิดข้อผิดพลาดในการโหลดคำสั่งซื้อ');
         setOrders([]);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
-    }
-    if (user) fetchOrders();
-  }, [user]);
+    };
 
-  if (!user) return <div>กรุณาเข้าสู่ระบบ</div>;
-  if (loading) return <div>Loading...</div>;
-  if (!orders.length) return <div>ยังไม่มีคำสั่งซื้อ</div>;
+    if (token) {
+      fetchData();
+    }
+  }, [token, isAuthLoading, navigate]);
+
+  // Show loading state while checking auth or loading data
+  if (isAuthLoading || isLoading) {
+    return <div style={{ padding: '20px', textAlign: 'center' }}>กำลังโหลดข้อมูล...</div>;
+  }
+
+  // If no token and not loading, show login prompt
+  if (!token) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <p>กรุณาเข้าสู่ระบบเพื่อดูคำสั่งซื้อ</p>
+        <button onClick={() => navigate('/login')}>เข้าสู่ระบบ</button>
+      </div>
+    );
+  }
+
+  // Show empty state if no orders
+  if (!orders.length) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <h2>คำสั่งซื้อของฉัน</h2>
+        <p>ยังไม่มีคำสั่งซื้อ</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -38,9 +91,16 @@ export default function Orders() {
           <div>วันที่สั่ง: {order.created_at}</div>
           <div>สินค้า:
             <ul>
-              {order.items.map(item => (
-                <li key={item.id}>สินค้า #{item.product_id} จำนวน {item.quantity} ราคา {item.price} บาท</li>
-              ))}
+              {order.items.map(item => {
+                const prod = products.find(p => p.id === item.product_id);
+                return (
+                  <li key={item.id} style={{display:'flex',alignItems:'center',gap:8}}>
+                    {prod && <img src={prod.image} alt={prod.title} style={{width:40,height:40,objectFit:'cover',borderRadius:4}} />}
+                    <span>{prod ? prod.title : `สินค้า #${item.product_id}`}</span>
+                    &nbsp;จำนวน {item.quantity} ราคา {item.price} บาท
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>

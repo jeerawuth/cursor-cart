@@ -17,9 +17,17 @@ import { useAuthStore } from '../store/authStore';
 
 function AdminRoute({ children }) {
   const user = useAuthStore(state => state.user);
+  const token = useAuthStore(state => state.token);
+  console.log('[AdminRoute] user:', user);
+  // ถ้ายังมี token แต่ user ยังไม่โหลด (null) ให้แสดง loading
+  if (token && user === null) {
+    return <div>Loading...</div>;
+  }
   if (!user || user.role !== 'admin') {
+    console.log('[AdminRoute] redirect: user not admin');
     return <Navigate to="/" replace />;
   }
+  console.log('[AdminRoute] access granted');
   return children;
 }
 

@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCartStore } from '../store/cartStore';
+import { fetchProducts } from '../api/products';
 import styles from './Cart.module.css';
 import CartItem from '../components/CartItem';
 
 const Cart = () => {
   const { cart, removeFromCart, decreaseQty, addToCart, clearCart } = useCartStore();
   const [popup, setPopup] = useState('');
+  const [products, setProducts] = useState([]);
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  useEffect(() => {
+    fetchProducts().then(setProducts);
+  }, []);
+
+  // join cart กับ products เพื่อเติม image/title ให้ cart item
+  const cartWithDetails = cart.map(item => {
+    // รองรับทั้ง item.id และ item.product_id
+    const prod = products.find(p => p.id === item.product_id || p.id === item.id);
+    return prod ? { ...prod, ...item } : item;
+  });
+
+  const total = cartWithDetails.reduce((sum, item) => sum + item.price * item.qty, 0);
 
   const handleRemove = (id) => {
     removeFromCart(id);
@@ -48,9 +61,9 @@ const Cart = () => {
         ) : (
           <>
             <ul className={styles.cartList}>
-              {cart.map(item => (
+              {cartWithDetails.map(item => (
                 <CartItem
-                  key={item.id}
+                  key={item.product_id || item.id}
                   item={item}
                   onIncrease={handleIncrease}
                   onDecrease={handleDecrease}

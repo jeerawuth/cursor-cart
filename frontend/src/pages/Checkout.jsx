@@ -16,9 +16,10 @@ const Checkout = () => {
   useEffect(() => {
     async function fetchProfile() {
       const token = user?.token || localStorage.getItem('token');
+      console.log('[Checkout] fetchProfile: user', user, 'token', token);
       if (!token) {
         setProfileLoading(false);
-        setProfileError('กรุณาเข้าสู่ระบบ');
+        setProfileError('\u0e01\u0e23\u0e38\u0e13\u0e32\u0e40\u0e02\u0e49\u0e32\u0e2a\u0e39\u0e48\u0e23\u0e30\u0e1a\u0e1a');
         return;
       }
       try {
@@ -30,7 +31,7 @@ const Checkout = () => {
         if (data.error) setProfileError(data.error);
         else setProfile(data);
       } catch {
-        setProfileError('โหลดข้อมูลโปรไฟล์ล้มเหลว');
+        setProfileError('\u0e2d\u0e23\u0e31\u0e1a\u0e01\u0e23\u0e38\u0e13\u0e32\u0e40\u0e1a\u0e32\u0e23\u0e30\u0e1a\u0e1a');
       } finally {
         setProfileLoading(false);
       }
@@ -50,10 +51,10 @@ const Checkout = () => {
 
   return (
     <div style={{maxWidth: 600, margin: '0 auto', padding: 24}}>
-      <h2>ตรวจสอบรายการสั่งซื้อ</h2>
+      <h2>ข้อมูลคำสั่งซื้อ</h2>
       <ul>
         {cart.map(item => (
-          <li key={item.id} style={{marginBottom: 8}}>
+          <li key={item.product_id || item.id} style={{marginBottom: 8}}>
             {item.title} x {item.qty} = <b>{item.price * item.qty} บาท</b>
           </li>
         ))}
