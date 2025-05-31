@@ -100,18 +100,58 @@ app.put('/profile', auth, (req, res) => {
   const { name, role, address } = req.body;
   if (!name) return res.status(400).json({ error: 'ข้อมูลไม่ครบ' });
   const newRole = role || req.user.role;
+  
   db.updateUser(req.user.id, name, newRole, address, (err, updated) => {
     if (err) {
       console.error('updateUser error:', err);
       return res.status(500).json({ error: err.message });
     }
-    res.json({ message: 'อัปเดตข้อมูลสำเร็จ', user: { id: req.user.id, email: req.user.email, name, role: newRole, address } });
+    
+    // After updating, fetch the complete user data
+    db.getUserById(req.user.id, (err, user) => {
+      if (err) {
+        console.error('Error fetching updated user:', err);
+        return res.status(500).json({ error: 'Error fetching updated user data' });
+      }
+      
+      if (!user) {
+        return res.status(404).json({ error: 'ไม่พบผู้ใช้หลังจากอัปเดต' });
+      }
+      
+      // Return the complete user data
+      res.json({
+        message: 'อัปเดตข้อมูลสำเร็จ',
+        ...user
+      });
+    });
   });
 });
 
 // GET /products (ดึงจาก sqlite ถ้าไม่มีรูปให้ใช้ mockup)
 const axios = require('axios');
 const MOCK_IMAGE = 'https://via.placeholder.com/200x200?text=No+Image';
+// Debug endpoint to check products table structure
+app.get('/debug/products/table-structure', (req, res) => {
+  db.all("PRAGMA table_info(products)", [], (err, columns) => {
+    if (err) {
+      console.error('Error getting table structure:', err);
+      return res.status(500).json({ error: 'Failed to get table structure' });
+    }
+    res.json(columns);
+  });
+});
+
+// Debug endpoint to get all products with their raw data
+app.get('/debug/products/all', (req, res) => {
+  db.all('SELECT * FROM products', [], (err, products) => {
+    if (err) {
+      console.error('Error getting products:', err);
+      return res.status(500).json({ error: 'Failed to get products' });
+    }
+    res.json(products);
+  });
+});
+
 app.get('/products', (req, res) => {
   db.getAllProducts((err, products) => {
     if (err) {
