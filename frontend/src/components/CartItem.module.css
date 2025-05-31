@@ -1,0 +1,19 @@
+.cartItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #eee;
+}
+.cartImg {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #fafafa;
+  border: 1px solid #eee;
+}
+.cartTitle {
+  flex: 1;
+  font-weight: 500;
+} 

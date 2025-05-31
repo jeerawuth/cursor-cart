@@ -1,0 +1,86 @@
+.productList {
+  padding: 2rem;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+.card {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 1.5rem 1rem 1rem 1rem;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: box-shadow 0.2s;
+}
+.card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.card img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  margin-bottom: 1rem;
+}
+.card h3 {
+  font-size: 1.1rem;
+  margin: 0.5rem 0 0.25rem 0;
+  text-align: center;
+}
+.card p {
+  margin: 0.25rem 0 0.5rem 0;
+  color: #222;
+  font-weight: bold;
+}
+.card a {
+  color: #007bff;
+  text-decoration: none;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+.card button {
+  background: #ffd700;
+  color: #222;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.2s;
+}
+.card button:hover {
+  background: #ffb700;
+}
+.popup {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: #ffd700;
+  color: #222;
+  padding: 0.5rem 1rem;
+  border-radius: 0 0 8px 8px;
+  margin-bottom: 1rem;
+  font-weight: bold;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+} 
