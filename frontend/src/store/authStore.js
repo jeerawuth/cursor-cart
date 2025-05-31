@@ -7,10 +7,18 @@ export const useAuthStore = create((set) => ({
   setAuth: (user, token) => {
     localStorage.setItem('token', token);
     set({ user, token });
+    import('../store/cartStore').then(mod => {
+      mod.useCartStore.getState().fetchCartFromServer(token);
+      console.log('authStore.setAuth: called fetchCartFromServer with token', token);
+    });
   },
   logout: () => {
     localStorage.removeItem('token');
     set({ user: null, token: null });
+    // clear cart when logout
+    import('../store/cartStore').then(mod => {
+      mod.useCartStore.getState().clearCart();
+    });
   },
   fetchUser: async () => {
     const token = localStorage.getItem('token');
@@ -24,6 +32,10 @@ export const useAuthStore = create((set) => ({
         set({ user: null, token: null });
       } else {
         set({ user: data, token });
+        import('../store/cartStore').then(mod => {
+          mod.useCartStore.getState().fetchCartFromServer(token);
+          console.log('authStore.fetchUser: called fetchCartFromServer with token', token);
+        });
       }
     } catch {
       set({ user: null, token: null });

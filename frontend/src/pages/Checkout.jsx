@@ -38,8 +38,11 @@ const Checkout = () => {
     fetchProfile();
   }, [user]);
 
+  useEffect(() => {
+    if (orderSuccess) clearCart();
+  }, [orderSuccess]);
+
   if (orderSuccess) {
-    clearCart();
     return <div style={{padding: 32}}><h2>สั่งซื้อสำเร็จ!</h2><a href="/orders">ดูคำสั่งซื้อของฉัน</a></div>;
   }
 

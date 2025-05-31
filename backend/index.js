@@ -19,13 +19,18 @@ app.use((req, res, next) => {
 // JWT Auth Middleware
 function auth(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'No token' });
+  if (!authHeader) {
+    console.log('[AUTH] No Authorization header');
+    return res.status(401).json({ error: 'No token' });
+  }
   const token = authHeader.split(' ')[1];
+  console.log('[AUTH] Got token:', token);
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
     next();
   } catch (e) {
+    console.log('[AUTH] Invalid token:', token, '| Error:', e.message);
     return res.status(401).json({ error: 'Invalid token' });
   }
 }
@@ -150,6 +155,43 @@ app.put('/products/:id', (req, res) => {
       return res.status(500).json({ error: 'Failed to update product' });
     }
     res.json(product);
+  });
+});
+
+// --- CART ENDPOINTS ---
+// GET /cart - ดึง cart ของ user
+app.get('/cart', auth, (req, res) => {
+  db.getCartByUserId(req.user.id, (err, items) => {
+    if (err) {
+      console.error('getCartByUserId error:', err);
+      return res.status(500).json({ error: 'ไม่สามารถดึง cart ได้' });
+    }
+    console.log('GET /cart for user', req.user.id, '->', items);
+    res.json({ items });
+  });
+});
+
+// PUT /cart - อัปเดต cart ของ user
+app.put('/cart', auth, (req, res) => {
+  const { items } = req.body;
+  if (!Array.isArray(items)) return res.status(400).json({ error: 'items ต้องเป็น array' });
+  db.upsertCart(req.user.id, items, (err) => {
+    if (err) {
+      console.error('upsertCart error:', err);
+      return res.status(500).json({ error: 'ไม่สามารถบันทึก cart ได้' });
+    }
+    res.json({ message: 'บันทึก cart สำเร็จ' });
+  });
+});
+
+// DELETE /cart - เคลียร์ cart ของ user
+app.delete('/cart', auth, (req, res) => {
+  db.clearCart(req.user.id, (err) => {
+    if (err) {
+      console.error('clearCart error:', err);
+      return res.status(500).json({ error: 'ไม่สามารถลบ cart ได้' });
+    }
+    res.json({ message: 'ลบ cart สำเร็จ' });
   });
 });
 

@@ -165,4 +165,35 @@ module.exports = {
       cb(null, { id: orderId, status });
     });
   },
-}; 
+  // --- CART SYSTEM ---
+  // ดึง cart ของ user
+  getCartByUserId(userId, cb) {
+    db.get('SELECT items FROM carts WHERE user_id = ?', [userId], (err, row) => {
+      if (err) return cb(err);
+      if (!row) return cb(null, []);
+      try {
+        const items = JSON.parse(row.items);
+        cb(null, items);
+      } catch (e) {
+        cb(null, []);
+      }
+    });
+  },
+  // บันทึก (insert หรือ update) cart ของ user
+  upsertCart(userId, items, cb) {
+    const itemsStr = JSON.stringify(items);
+    db.run(
+      'INSERT INTO carts (user_id, items, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE SET items = excluded.items, updated_at = CURRENT_TIMESTAMP',
+      [userId, itemsStr],
+      function (err) {
+        cb(err);
+      }
+    );
+  },
+  // เคลียร์ cart
+  clearCart(userId, cb) {
+    db.run('DELETE FROM carts WHERE user_id = ?', [userId], function (err) {
+      cb(err);
+    });
+  }
+};
