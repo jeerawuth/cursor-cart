@@ -152,6 +152,7 @@ app.get('/debug/products/all', (req, res) => {
   });
 });
 
+// Get all products
 app.get('/products', (req, res) => {
   db.getAllProducts((err, products) => {
     if (err) {
@@ -168,6 +169,31 @@ app.get('/products', (req, res) => {
       }
     }));
     res.json(mapped);
+  });
+});
+
+// Get single product by ID
+app.get('/products/:id', (req, res) => {
+  const productId = req.params.id;
+  if (!productId) {
+    return res.status(400).json({ error: 'Product ID is required' });
+  }
+  
+  db.getProductById(productId, (err, product) => {
+    if (err) {
+      console.error('Error fetching product:', err.message);
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    // Format the response to match the frontend expectations
+    const formattedProduct = {
+      ...product,
+      name: product.title, // Map title to name for frontend
+      image_url: product.image || MOCK_IMAGE, // Use image_url for frontend
+      stock_quantity: product.stock_quantity || 0 // Add stock_quantity if not exists
+    };
+    
+    res.json(formattedProduct);
   });
 });
 

@@ -11,17 +11,17 @@ const ORDER_STATUS = {
   PAID: 'paid',
   SHIPPED: 'shipped',
   DELIVERED: 'delivered',
-  CANCELLED: 'cancelled'
+  CANCELLED: 'cancelled',
 };
 
 // แท็บสถานะคำสั่งซื้อ
 const statusTabs = [
-  { id: ORDER_STATUS.ALL, label: 'ทั้งหมด' },
   { id: ORDER_STATUS.PENDING, label: 'รอดำเนินการ' },
   { id: ORDER_STATUS.PAID, label: 'ชำระเงินแล้ว' },
   { id: ORDER_STATUS.SHIPPED, label: 'กำลังจัดส่ง' },
   { id: ORDER_STATUS.DELIVERED, label: 'จัดส่งสำเร็จ' },
-  { id: ORDER_STATUS.CANCELLED, label: 'ยกเลิก' }
+  { id: ORDER_STATUS.CANCELLED, label: 'ยกเลิก' },
+  { id: ORDER_STATUS.ALL, label: 'ทั้งหมด' },
 ];
 
 // ฟังก์ชันแปลงสถานะเป็นข้อความภาษาไทย

@@ -87,6 +87,13 @@ module.exports = {
   getAllProducts(cb) {
     db.all('SELECT * FROM products', cb);
   },
+  getProductById(id, cb) {
+    db.get('SELECT * FROM products WHERE id = ?', [id], (err, product) => {
+      if (err) return cb(err);
+      if (!product) return cb(new Error('Product not found'));
+      cb(null, product);
+    });
+  },
   addProduct(product, cb) {
     db.run(
       'INSERT INTO products (title, price, description, category, image, rating_rate, rating_count) VALUES (?, ?, ?, ?, ?, ?, ?)',

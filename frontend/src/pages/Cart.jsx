@@ -56,6 +56,7 @@ const Cart = () => {
       {popup && <div className={styles.popup}>{popup}</div>}
       <div className={styles.cart}>
         <h2>ตะกร้าสินค้า</h2>
+        <button onClick={handleClear}>ล้างตะกร้า</button>
         {cart.length === 0 ? (
           <p>ไม่มีสินค้าในตะกร้า</p>
         ) : (
@@ -71,14 +72,13 @@ const Cart = () => {
               ))}
             </ul>
             <p>รวมทั้งหมด: {total} บาท</p>
-            <button onClick={handleClear}>ล้างตะกร้า</button>
+            
             <br />
             <a href="/checkout" style={{textDecoration:'none'}}>
               <button style={{marginTop: 12, background: '#4caf50', color: 'white', padding: '8px 24px', fontSize: 16}}>
-                Checkout
+              ไปชำระเงิน
               </button>
             </a>
-            <a href="/checkout">ไปชำระเงิน</a>
           </>
         )}
       </div>
