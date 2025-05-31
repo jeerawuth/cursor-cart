@@ -176,6 +176,17 @@ module.exports = {
       cb(null, rows);
     });
   },
+  // Update user role
+  updateUserRole(userId, role, cb) {
+    db.run('UPDATE users SET role = ? WHERE id = ?', [role, userId], function(err) {
+      if (err) return cb(err);
+      // Fetch the updated user to return complete data
+      db.get('SELECT id, email, name, role, created_at FROM users WHERE id = ?', [userId], (err, user) => {
+        if (err) return cb(err);
+        cb(null, user);
+      });
+    });
+  },
   // --- CART SYSTEM ---
   // ดึง cart ของ user
   getCartByUserId(userId, cb) {

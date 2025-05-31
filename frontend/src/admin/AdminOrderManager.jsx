@@ -116,8 +116,22 @@ export default function AdminOrderManager() {
     }
   }, [token, user, isAuthLoading, navigate]);
 
-  const handleStatusChange = async (orderId, status) => {
+  const handleStatusChange = async (orderId, newStatus, currentStatus) => {
     if (!token) return;
+    
+    // Skip if no change
+    if (newStatus === currentStatus) return;
+    
+    // Show confirmation dialog
+    const confirmMessage = `คุณแน่ใจหรือไม่ที่จะเปลี่ยนสถานะคำสั่งซื้อจาก "${getStatusLabel(currentStatus)}" เป็น "${getStatusLabel(newStatus)}"?`;
+    if (!window.confirm(confirmMessage)) {
+      // Reset the select to previous value if user cancels
+      const selectElement = document.querySelector(`select[data-order-id="${orderId}"]`);
+      if (selectElement) {
+        selectElement.value = currentStatus;
+      }
+      return;
+    }
     
     setStatusUpdating(orderId);
     try {
@@ -127,19 +141,29 @@ export default function AdminOrderManager() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status: newStatus })  // Make sure to use newStatus here
       });
 
       if (!response.ok) {
-        throw new Error('ไม่สามารถอัปเดตสถานะได้');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error response:', errorData);
+        throw new Error(errorData.error || 'ไม่สามารถอัปเดตสถานะได้');
       }
 
+      const result = await response.json();
+      console.log('Update successful:', result);
+
       setOrders(orders => orders.map(o => 
-        o.id === orderId ? { ...o, status } : o
+        o.id === orderId ? { ...o, status: newStatus } : o
       ));
     } catch (err) {
       console.error('Error updating order status:', err);
       alert(err.message || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+      // Reset the select to previous value on error
+      const selectElement = document.querySelector(`select[data-order-id="${orderId}"]`);
+      if (selectElement) {
+        selectElement.value = currentStatus;
+      }
     } finally {
       setStatusUpdating(null);
     }
@@ -302,9 +326,10 @@ export default function AdminOrderManager() {
                     เปลี่ยนสถานะ:
                     <select
                       value={order.status}
-                      onChange={e => handleStatusChange(order.id, e.target.value)}
+                      onChange={e => handleStatusChange(order.id, e.target.value, order.status)}
                       disabled={statusUpdating === order.id}
                       className="status-select"
+                      data-order-id={order.id}
                     >
                       <option value="pending">รอดำเนินการ</option>
                       <option value="paid">ชำระเงินแล้ว</option>

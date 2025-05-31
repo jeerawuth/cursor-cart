@@ -273,6 +273,50 @@ app.get('/admin/users', auth, requireRole('admin'), (req, res) => {
   });
 });
 
+// Update user role (admin only)
+app.put('/admin/users/:id/role', auth, requireRole('admin'), (req, res) => {
+  console.log('Role update request received:', req.params.id, req.body);
+  const { role } = req.body;
+  const userId = req.params.id;
+  
+  if (!role || !['admin', 'customer'].includes(role)) {
+    console.error('Invalid role provided:', role);
+    return res.status(400).json({ error: 'Invalid role', received: role });
+  }
+  
+  if (!userId || isNaN(parseInt(userId))) {
+    console.error('Invalid user ID:', userId);
+    return res.status(400).json({ error: 'Invalid user ID', received: userId });
+  }
+  
+  console.log(`Updating user ${userId} role to ${role}`);
+  
+  // Use the database helper function
+  db.updateUserRole(userId, role, (err, updatedUser) => {
+    if (err) {
+      console.error('Error updating user role:', err);
+      return res.status(500).json({ 
+        error: 'Database error when updating role',
+        details: err.message 
+      });
+    }
+    
+    if (!updatedUser) {
+      console.error('User not found with ID:', userId);
+      return res.status(404).json({ 
+        error: 'User not found',
+        userId: userId
+      });
+    }
+    
+    console.log('Successfully updated user role:', updatedUser);
+    res.json({ 
+      message: 'Role updated successfully',
+      user: updatedUser
+    });
+  });
+});
+
 app.get('/admin/orders', auth, requireRole('admin'), (req, res) => {
   db.getAllOrders((err, rows) => {
     if (err) {
