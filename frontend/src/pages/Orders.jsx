@@ -2,10 +2,45 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { fetchProducts } from '../api/products';
+import '../styles/Orders.css';
+
+// สถานะคำสั่งซื้อ
+const ORDER_STATUS = {
+  ALL: 'all',
+  PENDING: 'pending',
+  PAID: 'paid',
+  SHIPPED: 'shipped',
+  DELIVERED: 'delivered',
+  CANCELLED: 'cancelled'
+};
+
+// แท็บสถานะคำสั่งซื้อ
+const statusTabs = [
+  { id: ORDER_STATUS.ALL, label: 'ทั้งหมด' },
+  { id: ORDER_STATUS.PENDING, label: 'รอดำเนินการ' },
+  { id: ORDER_STATUS.PAID, label: 'ชำระเงินแล้ว' },
+  { id: ORDER_STATUS.SHIPPED, label: 'กำลังจัดส่ง' },
+  { id: ORDER_STATUS.DELIVERED, label: 'จัดส่งสำเร็จ' },
+  { id: ORDER_STATUS.CANCELLED, label: 'ยกเลิก' }
+];
+
+// ฟังก์ชันแปลงสถานะเป็นข้อความภาษาไทย
+const getStatusLabel = (status) => {
+  const statusMap = {
+    [ORDER_STATUS.PENDING]: 'รอดำเนินการ',
+    [ORDER_STATUS.PAID]: 'ชำระเงินแล้ว',
+    [ORDER_STATUS.SHIPPED]: 'กำลังจัดส่ง',
+    [ORDER_STATUS.DELIVERED]: 'จัดส่งสำเร็จ',
+    [ORDER_STATUS.CANCELLED]: 'ยกเลิก'
+  };
+  return statusMap[status] || status;
+};
 
 export default function Orders() {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [filteredOrders, setFilteredOrders] = useState([]);
+  const [activeTab, setActiveTab] = useState(ORDER_STATUS.ALL);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -38,8 +73,10 @@ export default function Orders() {
         }
 
         const ordersData = await ordersResponse.json();
+        const validOrders = Array.isArray(ordersData) ? ordersData : [];
         setProducts(productsData);
-        setOrders(Array.isArray(ordersData) ? ordersData : []);
+        setOrders(validOrders);
+        setFilteredOrders(validOrders); // เริ่มต้นแสดงทั้งหมด
         setError('');
       } catch (err) {
         console.error('Error fetching orders:', err);
@@ -54,6 +91,15 @@ export default function Orders() {
       fetchData();
     }
   }, [token, isAuthLoading, navigate]);
+
+  // Update filtered orders when activeTab or orders change
+  useEffect(() => {
+    if (activeTab === ORDER_STATUS.ALL) {
+      setFilteredOrders(orders);
+    } else {
+      setFilteredOrders(orders.filter(order => order.status === activeTab));
+    }
+  }, [activeTab, orders]);
 
   // Show loading state while checking auth or loading data
   if (isAuthLoading || isLoading) {
@@ -70,41 +116,129 @@ export default function Orders() {
     );
   }
 
-  // Show empty state if no orders
+  // Show tabs even when there are no orders in the current filter
+  const renderEmptyState = () => (
+    <div className="no-orders">
+      <p>{orders.length === 0 ? 'ยังไม่มีคำสั่งซื้อ' : 'ไม่พบคำสั่งซื้อในหมวดหมู่นี้'}</p>
+    </div>
+  );
+  
+  // Calculate order counts for each status
+  const getOrderCountByStatus = (status) => {
+    if (status === ORDER_STATUS.ALL) return orders.length;
+    return orders.filter(order => order.status === status).length;
+  };
+
+  // Always show the tabs, even when there are no orders
+  const renderTabs = () => (
+    <div className="status-tabs">
+      {statusTabs.map(tab => {
+        const count = getOrderCountByStatus(tab.id);
+        return (
+          <button
+            key={tab.id}
+            className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+            {count > 0 && (
+              <span className="tab-count">
+                {count}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  // If there are no orders at all
   if (!orders.length) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
+      <div className="orders-container">
         <h2>คำสั่งซื้อของฉัน</h2>
-        <p>ยังไม่มีคำสั่งซื้อ</p>
+        {renderTabs()}
+        {renderEmptyState()}
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="orders-container">
       <h2>คำสั่งซื้อของฉัน</h2>
-      {orders.map(order => (
-        <div key={order.id} style={{ border: '1px solid #ccc', margin: 12, padding: 12 }}>
-          <div>ชื่อผู้รับ: {order.shipping_name}</div>
-          <div>ที่อยู่: {order.shipping_address}</div>
-          <div>สถานะ: <b>{order.status}</b></div>
-          <div>วันที่สั่ง: {order.created_at}</div>
-          <div>สินค้า:
-            <ul>
-              {order.items.map(item => {
-                const prod = products.find(p => p.id === item.product_id);
-                return (
-                  <li key={item.id} style={{display:'flex',alignItems:'center',gap:8}}>
-                    {prod && <img src={prod.image} alt={prod.title} style={{width:40,height:40,objectFit:'cover',borderRadius:4}} />}
-                    <span>{prod ? prod.title : `สินค้า #${item.product_id}`}</span>
-                    &nbsp;จำนวน {item.quantity} ราคา {item.price} บาท
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+      
+      {/* Render tabs */}
+      {renderTabs()}
+      
+      {/* Render content based on filtered orders */}
+      {!filteredOrders.length ? (
+        renderEmptyState()
+      ) : (
+        <div className="orders-list">
+          {filteredOrders.map(order => (
+            <div key={order.id} className="order-card">
+              <div className="order-header">
+                <span className="order-id">#ORD-{order.id}</span>
+                <span className={`status-badge ${order.status}`}>
+                  {getStatusLabel(order.status)}
+                </span>
+              </div>
+              <div className="order-details">
+                <div className="detail-row">
+                  <span className="detail-label">ชื่อผู้รับ:</span>
+                  <span>{order.shipping_name}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">ที่อยู่:</span>
+                  <span>{order.shipping_address}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">วันที่สั่ง:</span>
+                  <span>{new Date(order.created_at).toLocaleDateString('th-TH')}</span>
+                </div>
+              </div>
+              
+              <div className="order-items">
+                <div className="items-label">สินค้า:</div>
+                <ul>
+                  {order.items.map(item => {
+                    const prod = products.find(p => p.id === item.product_id);
+                    return (
+                      <li key={item.id} className="order-item">
+                        {prod && (
+                          <img 
+                            src={prod.image} 
+                            alt={prod.title} 
+                            className="product-image"
+                          />
+                        )}
+                        <div className="item-details">
+                          <div className="item-title">
+                            {prod ? prod.title : `สินค้า #${item.product_id}`}
+                          </div>
+                          <div className="item-quantity">
+                            จำนวน {item.quantity} ชิ้น
+                          </div>
+                          <div className="item-price">
+                            ราคา {item.price} บาท
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              
+              <div className="order-total">
+                <span>รวมทั้งหมด:</span>
+                <span className="total-amount">
+                  {order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)} บาท
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }

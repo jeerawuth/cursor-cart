@@ -8,8 +8,8 @@ const AdminDashboard = () => {
       <h2>แดชบอร์ดผู้ดูแลระบบ</h2>
       <ul>
         <li><Link to="/admin/products">จัดการสินค้า</Link></li>
-        <li><a href="/admin/orders">ดูคำสั่งซื้อ</a></li>
-        <li><a href="/admin/users">ดูผู้ใช้งาน</a></li>
+        <li><Link to="/admin/orders">ดูคำสั่งซื้อ</Link></li>
+        <li><Link to="/admin/users">ดูผู้ใช้งาน</Link></li>
       </ul>
     </div>
   );

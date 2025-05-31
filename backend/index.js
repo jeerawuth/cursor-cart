@@ -262,6 +262,17 @@ app.get('/orders', auth, (req, res) => {
 });
 
 // GET /admin/orders - ดูคำสั่งซื้อทั้งหมด (admin เท่านั้น)
+// Get all users (admin only)
+app.get('/admin/users', auth, requireRole('admin'), (req, res) => {
+  db.getAllUsers((err, users) => {
+    if (err) {
+      console.error('getAllUsers error:', err);
+      return res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลผู้ใช้' });
+    }
+    res.json(users);
+  });
+});
+
 app.get('/admin/orders', auth, requireRole('admin'), (req, res) => {
   db.getAllOrders((err, rows) => {
     if (err) {

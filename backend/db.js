@@ -165,6 +165,17 @@ module.exports = {
       cb(null, { id: orderId, status });
     });
   },
+  // --- USER MANAGEMENT ---
+  // Get all users (admin only)
+  getAllUsers(cb) {
+    db.all('SELECT id, email, name, role, address, created_at as createdAt FROM users', (err, rows) => {
+      if (err) {
+        console.error('Error getting users:', err);
+        return cb(err);
+      }
+      cb(null, rows);
+    });
+  },
   // --- CART SYSTEM ---
   // ดึง cart ของ user
   getCartByUserId(userId, cb) {
