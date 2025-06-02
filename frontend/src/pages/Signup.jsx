@@ -1,19 +1,40 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import styles from './Login.module.css';
+import { useNavigate, Link } from 'react-router-dom';
+import styles from './Signup.module.css';
 
 const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('customer');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
+
+  const validatePassword = () => {
+    if (password !== confirmPassword) {
+      setPasswordError('รหัสผ่านไม่ตรงกัน');
+      return false;
+    }
+    if (password.length < 6) {
+      setPasswordError('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
+      return false;
+    }
+    setPasswordError('');
+    return true;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); setSuccess('');
+    setError('');
+    setSuccess('');
+    
+    if (!validatePassword()) {
+      return;
+    }
+    
     try {
       const res = await fetch('http://localhost:4000/register', {
         method: 'POST',
@@ -35,22 +56,117 @@ const Signup = () => {
   };
 
   return (
-    <div className={styles.login}>
-      <h2>สมัครสมาชิก</h2>
-      {error && <div style={{color:'red'}}>{error}</div>}
-      {success && <div style={{color:'green'}}>{success}</div>}
-      <form onSubmit={handleSubmit}>
-        <input type="email" placeholder="อีเมล" value={email} onChange={e => setEmail(e.target.value)} required />
-        <input type="password" placeholder="รหัสผ่าน" value={password} onChange={e => setPassword(e.target.value)} required />
-        <input type="text" placeholder="ชื่อผู้ใช้" value={name} onChange={e => setName(e.target.value)} required />
-        <select value={role} onChange={e => setRole(e.target.value)} required>
-          <option value="customer">Customer</option>
-          <option value="user">User</option>
-          <option value="admin">Admin</option>
-        </select>
-        <button type="submit">สมัครสมาชิก</button>
-      </form>
-      <button onClick={() => navigate('/login')}>เข้าสู่ระบบ</button>
+    <div className={styles.signupContainer}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>สมัครสมาชิก</h1>
+      </div>
+      
+      <div className={styles.card}>
+        {error && <div className={styles.error}>{error}</div>}
+        {success && <div className={styles.success}>{success}</div>}
+        
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.formGroup}>
+            <label htmlFor="email">อีเมล</label>
+            <input
+              id="email"
+              type="email"
+              className={styles.formInput}
+              placeholder="กรอกอีเมลของคุณ"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className={styles.formGroup}>
+            <label htmlFor="password">รหัสผ่าน</label>
+            <input
+              id="password"
+              type="password"
+              className={styles.formInput}
+              placeholder="กรอกรหัสผ่าน (อย่างน้อย 6 ตัวอักษร)"
+              value={password}
+              onChange={e => {
+                setPassword(e.target.value);
+                if (confirmPassword && e.target.value !== confirmPassword) {
+                  setPasswordError('รหัสผ่านไม่ตรงกัน');
+                } else {
+                  setPasswordError('');
+                }
+              }}
+              required
+            />
+          </div>
+          
+          <div className={styles.formGroup}>
+            <label htmlFor="confirmPassword">ยืนยันรหัสผ่าน</label>
+            <input
+              id="confirmPassword"
+              type="password"
+              className={`${styles.formInput} ${passwordError ? styles.inputError : ''}`}
+              placeholder="กรุณากรอกรหัสผ่านอีกครั้ง"
+              value={confirmPassword}
+              onChange={e => {
+                setConfirmPassword(e.target.value);
+                if (e.target.value !== password) {
+                  setPasswordError('รหัสผ่านไม่ตรงกัน');
+                } else {
+                  setPasswordError('');
+                }
+              }}
+              onBlur={validatePassword}
+              required
+            />
+            {passwordError && <div className={styles.errorText}>{passwordError}</div>}
+          </div>
+          
+          <div className={styles.formGroup}>
+            <label htmlFor="name">ชื่อผู้ใช้</label>
+            <input
+              id="name"
+              type="text"
+              className={styles.formInput}
+              placeholder="กรอกชื่อผู้ใช้"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className={`${styles.formGroup} ${styles.roleSelector}`}>
+            <label htmlFor="role">บทบาท</label>
+            <select
+              id="role"
+              className={styles.selectInput}
+              value={role}
+              onChange={e => setRole(e.target.value)}
+              required
+            >
+              <option value="customer">ลูกค้า</option>
+              <option value="user">ผู้ใช้</option>
+              <option value="admin">ผู้ดูแลระบบ</option>
+            </select>
+          </div>
+          
+          <div className={styles.buttonGroup}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => navigate('/login')}
+            >
+              กลับไปเข้าสู่ระบบ
+            </button>
+            <button
+              type="submit"
+              className={styles.primaryButton}
+              disabled={!email || !password || !confirmPassword || !name || passwordError}
+            >
+              สมัครสมาชิก
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

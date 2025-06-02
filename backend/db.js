@@ -69,11 +69,26 @@ module.exports = {
   getUserByEmail(email, cb) {
     db.get('SELECT * FROM users WHERE email = ?', [email], cb);
   },
-  registerUser(email, password, name, role = 'customer', address = '', cb) {
-    db.run('INSERT INTO users (email, password, name, role, address) VALUES (?, ?, ?, ?, ?)', [email, password, name, role, address], function(err) {
-      if (err) return cb(err);
-      cb(null, { id: this.lastID, email, name, role, address });
-    });
+  registerUser(email, password, name, role = 'customer', address, cb) {
+    // If the last parameter is not a function, it means the callback was passed as the 5th parameter
+    if (typeof address === 'function') {
+      cb = address;
+      address = '';
+    }
+    
+    db.run('INSERT INTO users (email, password, name, role, address) VALUES (?, ?, ?, ?, ?)', 
+      [email, password, name, role, address || ''], 
+      function(err) {
+        if (err) return cb(err);
+        cb(null, { 
+          id: this.lastID, 
+          email, 
+          name, 
+          role, 
+          address: address || '' 
+        });
+      }
+    );
   },
   getUserById(id, cb) {
     db.get('SELECT * FROM users WHERE id = ?', [id], cb);

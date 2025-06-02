@@ -71,7 +71,7 @@ const Cart = () => {
                 />
               ))}
             </ul>
-            <p>รวมทั้งหมด: {total} บาท</p>
+            <p>รวมทั้งหมด: {total.toFixed(2)} บาท</p>
             
             <br />
             <a href="/checkout" style={{textDecoration:'none'}}>

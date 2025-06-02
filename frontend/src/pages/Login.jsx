@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import styles from './Login.module.css';
 import { useAuthStore } from '../store/authStore';
 
@@ -29,15 +29,57 @@ const Login = () => {
   };
 
   return (
-    <div className={styles.login}>
-      <h2>เข้าสู่ระบบ</h2>
-      {error && <div style={{color:'red'}}>{error}</div>}
-      <form onSubmit={handleSubmit}>
-        <input type="email" placeholder="อีเมล" value={email} onChange={e => setEmail(e.target.value)} required />
-        <input type="password" placeholder="รหัสผ่าน" value={password} onChange={e => setPassword(e.target.value)} required />
-        <button type="submit">เข้าสู่ระบบ</button>
-      </form>
-      <button onClick={() => navigate('/signup')}>สมัครสมาชิก</button>
+    <div className={styles.loginContainer}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>เข้าสู่ระบบ</h1>
+      </div>
+      
+      <div className={styles.card}>
+        {error && <div className={styles.error}>{error}</div>}
+        
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.formGroup}>
+            <label htmlFor="email">อีเมล</label>
+            <input
+              id="email"
+              type="email"
+              className={styles.formInput}
+              placeholder="กรอกอีเมลของคุณ"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className={styles.formGroup}>
+            <label htmlFor="password">รหัสผ่าน</label>
+            <input
+              id="password"
+              type="password"
+              className={styles.formInput}
+              placeholder="กรอกรหัสผ่าน"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className={styles.buttonGroup}>
+            <button
+              type="submit"
+              className={styles.primaryButton}
+              disabled={!email || !password}
+            >
+              เข้าสู่ระบบ
+            </button>
+          </div>
+        </form>
+        
+        <div className={styles.footer}>
+          ยังไม่มีบัญชี? 
+          <Link to="/signup">สมัครสมาชิก</Link>
+        </div>
+      </div>
     </div>
   );
 };

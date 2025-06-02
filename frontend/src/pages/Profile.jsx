@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import styles from './Profile.module.css';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -118,95 +120,114 @@ const Profile = () => {
     setIsEditing(true);
   };
 
-  if (error) return <div className={styles.profile}><h2>โปรไฟล์ผู้ใช้</h2><p className={styles.error}>{error}</p></div>;
-  if (!user) return <div className={styles.profile}><h2>โปรไฟล์ผู้ใช้</h2><p>กำลังโหลด...</p></div>;
+  if (error) return (
+    <div className={styles.adminDashboard}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>โปรไฟล์ผู้ใช้</h1>
+      </div>
+      <div className={styles.error}>{error}</div>
+    </div>
+  );
+
+  if (!user) return (
+    <div className={styles.adminDashboard}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>โปรไฟล์ผู้ใช้</h1>
+      </div>
+      <div className={styles.card}>
+        <h2 className={styles.sectionTitle}>ข้อมูลส่วนตัว</h2>
+        <div>กำลังโหลดข้อมูลผู้ใช้...</div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className={styles.profile}>
-      <h2>โปรไฟล์ผู้ใช้</h2>
-      
-      {isEditing ? (
-        <form onSubmit={handleSubmit} className={styles.profileForm}>
-          <div className={styles.formGroup}>
-            <label htmlFor="name">ชื่อ</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-              className={styles.input}
-            />
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label htmlFor="email">อีเมล</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              disabled
-              className={`${styles.input} ${styles.disabled}`}
-            />
-            <p className={styles.helpText}>ไม่สามารถเปลี่ยนอีเมลได้</p>
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label htmlFor="address">ที่อยู่</label>
-            <textarea
-              id="address"
-              name="address"
-              value={formData.address}
-              onChange={handleInputChange}
-              rows="4"
-              className={styles.textarea}
-            />
-          </div>
-          
-          <div className={styles.buttonGroup}>
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className={styles.cancelButton}
-              disabled={isSubmitting}
-            >
-              ยกเลิก
-            </button>
-            <button
-              type="submit"
-              className={styles.saveButton}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
-            </button>
-          </div>
-          
-          {submitError && <p className={styles.error}>{submitError}</p>}
-          {submitSuccess && <p className={styles.success}>บันทึกการเปลี่ยนแปลงเรียบร้อยแล้ว</p>}
-        </form>
-      ) : (
-        <div className={styles.profileInfo}>
-          <p><b>ชื่อ:</b> {user.name}</p>
-          <p><b>อีเมล:</b> {user.email}</p>
-          {user.address && (
-            <p className={styles.address}>
-              <b>ที่อยู่:</b> {user.address}
-            </p>
+    <div className={styles.adminDashboard}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>โปรไฟล์ผู้ใช้</h1>
+      </div>
+      {error && <div className={styles.error}>{error}</div>}
+      <div className={styles.card}>
+        <h2 className={styles.sectionTitle}>ข้อมูลส่วนตัว</h2>
+        <div className={styles.profileContent}>
+          {isEditing ? (
+            <form onSubmit={handleSubmit} className={styles.form}>
+              <div className={styles.formGroup}>
+                <label>ชื่อ</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className={styles.formInput}
+                  required
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>อีเมล</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  className={styles.formInput}
+                  disabled
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>ที่อยู่</label>
+                <textarea
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  className={`${styles.formInput} ${styles.textarea}`}
+                  rows="4"
+                  required
+                />
+              </div>
+              <div className={styles.buttonGroup}>
+                <button 
+                  type="button" 
+                  onClick={() => setIsEditing(false)}
+                  className={styles.secondaryButton}
+                  disabled={isSubmitting}
+                >
+                  ยกเลิก
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className={styles.primaryButton}
+                >
+                  {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
+                </button>
+              </div>
+              {submitError && <div className={styles.error}>{submitError}</div>}
+              {submitSuccess && <div className={styles.success}>อัปเดตโปรไฟล์เรียบร้อยแล้ว</div>}
+            </form>
+          ) : (
+            <div className={styles.profileInfo}>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>ชื่อ:</span>
+                <span className={styles.infoValue}>{user.name}</span>
+              </div>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>อีเมล:</span>
+                <span className={styles.infoValue}>{user.email}</span>
+              </div>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>ที่อยู่:</span>
+                <span className={styles.infoValue}>{user.address || 'ยังไม่ได้ระบุที่อยู่'}</span>
+              </div>
+              <button 
+                onClick={() => setIsEditing(true)}
+                className={styles.primaryButton}
+              >
+                แก้ไขโปรไฟล์
+              </button>
+            </div>
           )}
-          <div className={styles.editButtonContainer}>
-            <button
-              type="button"
-              onClick={handleEditClick}
-              className={styles.editButton}
-            >
-              แก้ไขโปรไฟล์
-            </button>
-          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

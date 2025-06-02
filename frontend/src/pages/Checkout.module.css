@@ -1,8 +1,10 @@
 .container {
-  max-width: 800px;
-  margin: 0 auto;
   padding: 2rem;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  width: 100vw;
+  max-width: 100%;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box;
 }
 
 .emptyCart {

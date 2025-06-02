@@ -47,22 +47,27 @@ function requireRole(...roles) {
 
 // POST /register
 app.post('/register', (req, res) => {
-  const { email, password, name, role } = req.body;
+  const { email, password, name, role, address = '' } = req.body;
   if (!email || !password || !name) return res.status(400).json({ error: 'ข้อมูลไม่ครบ' });
   const userRole = role || 'customer';
+  
   db.getUserByEmail(email, (err, user) => {
     if (err) {
       console.error('getUserByEmail error:', err);
       return res.status(500).json({ error: err.message });
     }
     if (user) return res.status(400).json({ error: 'อีเมลนี้ถูกใช้แล้ว' });
+    
     const hash = bcrypt.hashSync(password, 10);
-    db.registerUser(email, hash, name, userRole, (err, newUser) => {
+    db.registerUser(email, hash, name, userRole, address, (err, newUser) => {
       if (err) {
         console.error('registerUser error:', err);
         return res.status(500).json({ error: err.message });
       }
-      res.json({ message: 'สมัครสมาชิกสำเร็จ', user: newUser });
+      res.json({ 
+        message: 'สมัครสมาชิกสำเร็จ', 
+        user: newUser 
+      });
     });
   });
 });

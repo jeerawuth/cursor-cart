@@ -1,4 +1,8 @@
 .home {
   padding: 2rem;
-  text-align: center;
+  width: 100vw;
+  max-width: 100%;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box;
 } 
