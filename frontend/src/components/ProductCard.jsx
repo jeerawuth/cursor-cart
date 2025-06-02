@@ -23,10 +23,14 @@ const ProductCard = ({ product, onAddToCart }) => {
           {showAddToCart && (
             <button 
               onClick={() => onAddToCart(product)} 
-              className={styles.addToCartBtn}
+              className={`${styles.addToCartBtn} ${product.stock_quantity <= 0 ? styles.disabledBtn : ''}`}
+              disabled={product.stock_quantity <= 0}
             >
-              เพิ่มลงตะกร้า
+              {product.stock_quantity > 0 ? 'เพิ่มลงตะกร้า' : 'สินค้าหมด'}
             </button>
+          )}
+          {product.stock_quantity !== undefined && product.stock_quantity <= 0 && (
+            <p className={styles.outOfStockText}>สินค้าหมดสต็อก</p>
           )}
         </div>
       </div>

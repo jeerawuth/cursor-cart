@@ -218,9 +218,18 @@ app.post('/products', (req, res) => {
 // PUT /products/:id - แก้ไขสินค้า
 app.put('/products/:id', (req, res) => {
   const id = req.params.id;
-  const { title, price, description, category, image, rating_rate, rating_count } = req.body;
+  const { title, price, description, category, image, rating_rate, rating_count, stock_quantity } = req.body;
   if (!title || price == null) return res.status(400).json({ error: 'กรุณาระบุชื่อสินค้าและราคา' });
-  db.updateProduct(id, { title, price, description, category, image, rating_rate, rating_count }, (err, product) => {
+  db.updateProduct(id, { 
+    title, 
+    price, 
+    description, 
+    category, 
+    image, 
+    rating_rate, 
+    rating_count, 
+    stock_quantity: stock_quantity !== undefined ? stock_quantity : 0 
+  }, (err, product) => {
     if (err) {
       console.error('Error updating product:', err.message);
       return res.status(500).json({ error: 'Failed to update product' });

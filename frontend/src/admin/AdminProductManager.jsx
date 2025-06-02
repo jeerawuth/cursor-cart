@@ -12,6 +12,7 @@ const emptyProduct = {
   description: '',
   category: '',
   image: '',
+  stock_quantity: 0,
   rating: {
     rate: 0,
     count: 0
@@ -117,6 +118,7 @@ const AdminProductManager = () => {
       description: product.description || '',
       category: product.category || '',
       image: product.image || MOCK_IMAGE,
+      stock_quantity: product.stock_quantity || 0,
       rating: {
         rate: Number(rating.rate) || 0,
         count: Number(rating.count) || 0
@@ -151,6 +153,7 @@ const AdminProductManager = () => {
       description: form.description || '',
       category: form.category || '',
       image: form.image || MOCK_IMAGE,
+      stock_quantity: Number(form.stock_quantity) || 0,
       rating_rate: form.rating?.rate ? Number(form.rating.rate) : 0,
       rating_count: form.rating?.count ? Number(form.rating.count) : 0
     };
@@ -329,6 +332,17 @@ const AdminProductManager = () => {
                 />
               </div>
               <div className={styles.formGroup}>
+                <label className={styles.label}>จำนวนสต๊อก</label>
+                <input
+                  type="number"
+                  name="stock_quantity"
+                  min="0"
+                  value={form.stock_quantity}
+                  onChange={handleChange}
+                  className={styles.input}
+                />
+              </div>
+              <div className={styles.formGroup}>
                 <label className={styles.label}>รายละเอียด</label>
                 <textarea
                   name="description"
@@ -364,6 +378,7 @@ const AdminProductManager = () => {
                 <th>ชื่อสินค้า</th>
                 <th>หมวดหมู่</th>
                 <th>ราคา</th>
+                <th>สต๊อก</th>
                 <th>รูปภาพ</th>
                 <th>เรตติ้ง</th>
                 <th>คำสั่ง</th>
@@ -380,6 +395,9 @@ const AdminProductManager = () => {
                   </td>
                   <td>{p.category || '-'}</td>
                   <td>{p.price ? `${p.price.toLocaleString()} บาท` : '-'}</td>
+                  <td className={p.stock_quantity > 0 ? styles.inStock : styles.outOfStock}>
+                    {p.stock_quantity !== undefined ? p.stock_quantity : 'N/A'}
+                  </td>
                   <td>
                     <img 
                       src={p.image || MOCK_IMAGE} 

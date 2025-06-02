@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import styles from './ProductDetail.module.css';
 import { useCartStore } from '../store/cartStore';
+import { useAuthStore } from '../store/authStore';
 
 const API_URL = 'http://localhost:4000/products';
 
@@ -13,6 +14,7 @@ const ProductDetail = () => {
   const [error, setError] = useState(null);
   const [popup, setPopup] = useState('');
   const addToCart = useCartStore(state => state.addToCart);
+  const { user } = useAuthStore();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -36,6 +38,12 @@ const ProductDetail = () => {
   if (!product) return <div>ไม่พบสินค้า</div>;
 
   const handleAddToCart = () => {
+    if (product.stock_quantity <= 0) {
+      setPopup('ขออภัย สินค้าหมดสต็อก');
+      setTimeout(() => setPopup(''), 1500);
+      return;
+    }
+    
     addToCart({
       ...product,
       title: product.name, // Map name to title if needed by your cart
@@ -59,7 +67,15 @@ const ProductDetail = () => {
               {product.stock_quantity > 0 ? `มีสินค้า: ${product.stock_quantity} ชิ้น` : 'สินค้าหมด'}
             </p>
           )}
-          <button onClick={handleAddToCart}>เพิ่มลงตะกร้า</button>
+          {user?.role !== 'admin' && (
+            <button 
+              onClick={handleAddToCart}
+              disabled={product.stock_quantity <= 0}
+              className={product.stock_quantity <= 0 ? styles.disabledButton : ''}
+            >
+              {product.stock_quantity > 0 ? 'เพิ่มลงตะกร้า' : 'สินค้าหมด'}
+            </button>
+          )}
         </div>
       </div>
     </div>

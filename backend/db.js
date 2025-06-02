@@ -111,8 +111,17 @@ module.exports = {
   },
   addProduct(product, cb) {
     db.run(
-      'INSERT INTO products (title, price, description, category, image, rating_rate, rating_count) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [product.title, product.price, product.description, product.category, product.image, product.rating_rate, product.rating_count],
+      'INSERT INTO products (title, price, description, category, image, rating_rate, rating_count, stock_quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        product.title, 
+        product.price, 
+        product.description, 
+        product.category, 
+        product.image, 
+        product.rating_rate, 
+        product.rating_count,
+        product.stock_quantity !== undefined ? product.stock_quantity : 0
+      ],
       function(err) {
         if (err) return cb(err);
         cb(null, { id: this.lastID, ...product });
@@ -121,8 +130,18 @@ module.exports = {
   },
   updateProduct(id, product, cb) {
     db.run(
-      'UPDATE products SET title = ?, price = ?, description = ?, category = ?, image = ?, rating_rate = ?, rating_count = ? WHERE id = ?',
-      [product.title, product.price, product.description, product.category, product.image, product.rating_rate, product.rating_count, id],
+      'UPDATE products SET title = ?, price = ?, description = ?, category = ?, image = ?, rating_rate = ?, rating_count = ?, stock_quantity = ? WHERE id = ?',
+      [
+        product.title, 
+        product.price, 
+        product.description, 
+        product.category, 
+        product.image, 
+        product.rating_rate, 
+        product.rating_count, 
+        product.stock_quantity !== undefined ? product.stock_quantity : 0,
+        id
+      ],
       function(err) {
         if (err) return cb(err);
         cb(null, { id, ...product });
@@ -180,11 +199,99 @@ module.exports = {
       cb
     );
   },
-  // อัปเดตสถานะคำสั่งซื้อ
+  // อัปเดตสถานะคำสั่งซื้อ และจัดการสต็อก
   updateOrderStatus(orderId, status, cb) {
-    db.run('UPDATE orders SET status = ? WHERE id = ?', [status, orderId], function(err) {
-      if (err) return cb(err);
-      cb(null, { id: orderId, status });
+    // เริ่ม transaction
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+      
+      // 1. ดึงข้อมูลคำสั่งซื้อเดิม
+      db.get('SELECT status FROM orders WHERE id = ?', [orderId], (err, order) => {
+        if (err) {
+          db.run('ROLLBACK');
+          return cb(err);
+        }
+        
+        const oldStatus = order.status;
+        
+        // 2. อัปเดตสถานะใหม่
+        db.run('UPDATE orders SET status = ? WHERE id = ?', [status, orderId], (err) => {
+          if (err) {
+            db.run('ROLLBACK');
+            return cb(err);
+          }
+          
+          // 3. ตรวจสอบการเปลี่ยนแปลงสถานะที่ต้องจัดการสต็อก
+          if ((oldStatus !== 'paid' && status === 'paid') || 
+              (oldStatus === 'paid' && status === 'cancelled')) {
+            
+            // ดึงรายการสินค้าในคำสั่งซื้อ
+            db.all(
+              'SELECT product_id, quantity FROM order_items WHERE order_id = ?', 
+              [orderId], 
+              (err, items) => {
+                if (err) {
+                  db.run('ROLLBACK');
+                  return cb(err);
+                }
+                
+                // วนลูปปรับปรุงสต็อกสินค้า
+                let completed = 0;
+                if (items.length === 0) return db.run('COMMIT', cb);
+                
+                items.forEach((item) => {
+                  // คำนวณจำนวนที่ต้องปรับ (บวกเมื่อยกเลิก, ลบเมื่อชำระเงิน)
+                  const quantityChange = status === 'paid' ? -item.quantity : item.quantity;
+                  
+                  // อัปเดตสต็อกสินค้า
+                  db.run(
+                    'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+                    [quantityChange, item.product_id],
+                    (err) => {
+                      if (err) {
+                        db.run('ROLLBACK');
+                        return cb(err);
+                      }
+                      
+                      // บันทึกประวัติการปรับปรุงสต็อก
+                      db.run(
+                        'INSERT INTO stock_movements (product_id, order_id, quantity, movement_type, created_at) VALUES (?, ?, ?, ?, ?)',
+                        [
+                          item.product_id,
+                          orderId,
+                          Math.abs(quantityChange),
+                          status === 'paid' ? 'out' : 'in',
+                          new Date().toISOString()
+                        ],
+                        (err) => {
+                          if (err) {
+                            console.error('Error logging stock movement:', err);
+                            // ไม่ต้องหยุดการทำงานถ้าไม่สามารถบันทึกประวัติได้
+                          }
+                          
+                          completed++;
+                          if (completed === items.length) {
+                            db.run('COMMIT', (err) => {
+                              if (err) return cb(err);
+                              cb(null, { message: 'อัปเดตสถานะและปรับปรุงสต็อกเรียบร้อย' });
+                            });
+                          }
+                        }
+                      );
+                    }
+                  );
+                });
+              }
+            );
+          } else {
+            // ไม่มีการปรับปรุงสต็อก ทำการ commit transaction
+            db.run('COMMIT', (err) => {
+              if (err) return cb(err);
+              cb(null, { message: 'อัปเดตสถานะเรียบร้อย' });
+            });
+          }
+        });
+      });
     });
   },
   // --- USER MANAGEMENT ---
