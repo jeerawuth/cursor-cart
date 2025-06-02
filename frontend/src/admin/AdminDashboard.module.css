@@ -1,69 +1,139 @@
 .adminDashboard {
   padding: 2rem;
-  width: 100vw;
+  width: 100%;
   max-width: 100%;
   margin: 0;
   font-family: Arial, sans-serif;
   box-sizing: border-box;
-  background: #f8f8f8;
-  border-radius: 8px;
-  min-height: 100vh;
   min-width: 100vw;
+  min-height: 100vh;
 }
 
-/* Table Styles */
-.tableContainer {
-  margin-top: 1.5rem;
-  overflow-x: auto;
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+  color: #2c3e50;
+}
+
+.header h1 {
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.header p {
+  color: #7f8c8d;
+  font-size: 1.1rem;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.card {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  text-decoration: none;
+  color: #2c3e50;
+  border: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  border-color: #3498db;
 }
 
-th, td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid #f0f0f0;
+.cardIcon {
+  width: 60px;
+  height: 60px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  color: #3498db;
+  font-size: 1.5rem;
 }
 
-th {
-  background-color: #f8f9fa;
-  font-weight: 600;
-  color: #333;
-  text-transform: uppercase;
-  font-size: 0.8rem;
-  letter-spacing: 0.5px;
+.card h3 {
+  font-size: 1.4rem;
+  margin-bottom: 0.75rem;
+  color: #2c3e50;
 }
 
-tr:hover {
-  background-color: #f9f9f9;
+.card p {
+  color: #7f8c8d;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+  flex-grow: 1;
 }
 
-/* Form Elements */
-.roleSelect {
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: border-color 0.2s;
+.linkText {
+  display: inline-flex;
+  align-items: center;
+  color: #3498db;
+  font-weight: 500;
+  margin-top: auto;
+  transition: all 0.2s ease;
 }
 
-.roleSelect:focus {
-  outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+.linkText span {
+  margin-left: 0.5rem;
+  transition: transform 0.2s ease;
 }
 
-.roleSelect:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
+.card:hover .linkText span {
+  transform: translateX(3px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboardGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .adminDashboard {
+    padding: 1.5rem 1rem;
+  }
+  
+  .header h1 {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .card {
+    padding: 1.5rem;
+  }
+  
+  .cardIcon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.25rem;
+  }
+  
+  .card h3 {
+    font-size: 1.25rem;
+  }
 }
 
 /* Status Messages */
@@ -92,21 +162,4 @@ tr:hover {
   padding: 2rem;
   color: #666;
   font-style: italic;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  .tableContainer {
-    border-radius: 0;
-  }
-  
-  th, td {
-    padding: 0.75rem 0.5rem;
-    font-size: 0.9em;
-  }
-  
-  .roleSelect {
-    padding: 0.3rem;
-    font-size: 0.85em;
-  }
 }
