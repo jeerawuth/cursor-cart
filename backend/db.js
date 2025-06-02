@@ -184,24 +184,96 @@ module.exports = {
   // --- ORDER SYSTEM ---
   // เพิ่มคำสั่งซื้อใหม่
   addOrder(userId, shippingName, shippingAddress, items, cb) {
-    db.run(
-      'INSERT INTO orders (user_id, shipping_name, shipping_address) VALUES (?, ?, ?)',
-      [userId, shippingName, shippingAddress],
-      function(err) {
-        if (err) return cb(err);
-        const orderId = this.lastID;
-        // เพิ่ม order_items
-        const stmt = db.prepare('INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)');
-        for (const item of items) {
-          stmt.run(orderId, item.product_id, item.quantity, item.price);
+  // Start a transaction
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+
+    // 1. First, check stock for all items
+    const checkStock = (index, callback) => {
+      if (index >= items.length) return callback(null);
+      
+      const item = items[index];
+      db.get('SELECT stock_quantity FROM products WHERE id = ?', [item.product_id], (err, product) => {
+        if (err) return callback(err);
+        if (!product) {
+          return callback(new Error(`ไม่พบสินค้ารหัส ${item.product_id}`));
         }
-        stmt.finalize((err) => {
-          if (err) return cb(err);
-          cb(null, { id: orderId });
-        });
-      }
-    );
-  },
+        if (product.stock_quantity < item.quantity) {
+          return callback(new Error(`สินค้า ${item.product_id} มีไม่เพียงพอในสต็อก (เหลือเพียง ${product.stock_quantity} ชิ้น)`));
+        }
+        checkStock(index + 1, callback);
+      });
+    };
+
+    // 2. If stock check passes, create order and reduce stock
+    const createOrder = () => {
+      db.run(
+        'INSERT INTO orders (user_id, shipping_name, shipping_address) VALUES (?, ?, ?)',
+        [userId, shippingName, shippingAddress],
+        function(err) {
+          if (err) return rollback(cb, err);
+          
+          const orderId = this.lastID;
+          const stmt = db.prepare('INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)');
+          
+          // Process each item
+          let processed = 0;
+          const totalItems = items.length;
+          
+          if (totalItems === 0) {
+            return commit(cb, null, { id: orderId });
+          }
+          
+          items.forEach((item, index) => {
+            // Add to order items
+            stmt.run(orderId, item.product_id, item.quantity, item.price, (err) => {
+              if (err) return rollback(cb, err);
+              
+              // Reduce stock
+              db.run(
+                'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
+                [item.quantity, item.product_id],
+                (err) => {
+                  if (err) return rollback(cb, err);
+                  
+                  processed++;
+                  if (processed === totalItems) {
+                    stmt.finalize((err) => {
+                      if (err) return rollback(cb, err);
+                      commit(cb, null, { id: orderId });
+                    });
+                  }
+                }
+              );
+            });
+          });
+        }
+      );
+    };
+
+    // Helper functions for transaction management
+    const commit = (callback, err, result) => {
+      db.run('COMMIT', (commitErr) => {
+        if (commitErr || err) {
+          return rollback(callback, commitErr || err);
+        }
+        callback(null, result);
+      });
+    };
+
+    const rollback = (callback, err) => {
+      db.run('ROLLBACK', () => {
+        callback(err);
+      });
+    };
+
+    // Start the process
+    checkStock(0, (err) => {
+      if (err) return rollback(cb, err);
+      createOrder();
+    });
+  });
+},
   // ดูคำสั่งซื้อทั้งหมดของผู้ใช้
   getOrdersByUser(userId, cb) {
     db.all(

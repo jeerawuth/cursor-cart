@@ -24,11 +24,21 @@ const Checkout = () => {
 
   const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   
-  const { handleSubmit: submitOrder, loading: isOrderLoading } = CreateOrder({ 
+  const { 
+    handleSubmit: submitOrder, 
+    loading: isOrderLoading,
+    error: orderValidationError 
+  } = CreateOrder({ 
     cartItems: cart, 
     onOrderSuccess: () => setOrderSuccess(true),
     profile 
   });
+
+  useEffect(() => {
+    if (orderValidationError) {
+      setOrderError(orderValidationError);
+    }
+  }, [orderValidationError]);
 
   const handleOrderSubmit = async () => {
     if (!profile?.name || !profile?.address) {
@@ -278,11 +288,26 @@ const Checkout = () => {
       </div>
       <div className={styles.orderSubmitSection}>
         <h3>สร้างคำสั่งซื้อ</h3>
-        {orderError && <div className={styles.error}>{orderError}</div>}
+        {orderError && (
+          <div className={styles.error} style={{ 
+            marginBottom: '1rem', 
+            padding: '0.75rem', 
+            backgroundColor: '#ffebee', 
+            borderRadius: '4px',
+            color: '#d32f2f'
+          }}>
+            {orderError}
+          </div>
+        )}
         <button 
           onClick={handleOrderSubmit} 
-          disabled={isSubmitting || isOrderLoading || !profile?.name || !profile?.address}
+          disabled={isSubmitting || isOrderLoading || !profile?.name || !profile?.address || orderError}
           className={styles.submitButton}
+          style={{
+            backgroundColor: orderError ? '#f44336' : '#4CAF50',
+            opacity: (isSubmitting || isOrderLoading || !profile?.name || !profile?.address || orderError) ? 0.7 : 1,
+            cursor: (isSubmitting || isOrderLoading || !profile?.name || !profile?.address || orderError) ? 'not-allowed' : 'pointer'
+          }}
         >
           {isSubmitting || isOrderLoading ? 'กำลังดำเนินการ...' : 'ยืนยันการสั่งซื้อ'}
         </button>

@@ -1,12 +1,58 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
 export default function CreateOrder({ cartItems, onOrderSuccess, profile }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [stockCheck, setStockCheck] = useState({ 
+    isValid: true, 
+    outOfStockItems: [],
+    results: []
+  });
   const user = useAuthStore(state => state.user);
   const token = user?.token || localStorage.getItem('token');
+
+  // Check stock when cart items change
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      checkStock();
+    }
+  }, [cartItems]);
+
+  // Function to check stock
+  const checkStock = async () => {
+    if (!token) return true; // Skip check if not logged in (will be caught later)
+    
+    try {
+      const itemsToCheck = cartItems.map(item => ({
+        product_id: item.product_id || item.id,
+        quantity: item.qty ?? item.quantity
+      }));
+
+      const response = await axios.post('http://localhost:4000/check-stock', 
+        { items: itemsToCheck },
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      
+      setStockCheck({
+        isValid: response.data.isValid,
+        outOfStockItems: response.data.outOfStockItems || [],
+        results: response.data.results || []
+      });
+      
+      return response.data.isValid;
+    } catch (err) {
+      console.error('Error checking stock:', err);
+      // Don't block the user if stock check fails, but log it
+      return true;
+    }
+  };
 
   const handleSubmit = async (shippingName, shippingAddress) => {
     setLoading(true);
@@ -14,6 +60,13 @@ export default function CreateOrder({ cartItems, onOrderSuccess, profile }) {
     try {
       if (!token) {
         setError('กรุณาเข้าสู่ระบบ');
+        setLoading(false);
+        return false;
+      }
+      
+      // Check stock before proceeding
+      const isStockValid = await checkStock();
+      if (!isStockValid) {
         setLoading(false);
         return false;
       }
@@ -62,5 +115,21 @@ export default function CreateOrder({ cartItems, onOrderSuccess, profile }) {
     }
   };
 
-  return { handleSubmit, loading, error };
+  // Get error message for out of stock items
+  const getStockErrorMessage = () => {
+    if (!stockCheck.isValid && stockCheck.outOfStockItems.length > 0) {
+      const itemMessages = stockCheck.outOfStockItems.map(item => 
+        `${item.title} (ต้องการ ${item.requested} ชิ้น แต่มีเพียง ${item.available} ชิ้น)`
+      ).join(', ');
+      return `สินค้ามีไม่เพียงพอ: ${itemMessages}`;
+    }
+    return '';
+  };
+
+  return { 
+    handleSubmit, 
+    loading, 
+    error: error || getStockErrorMessage(),
+    stockCheck 
+  };
 }

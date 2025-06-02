@@ -297,12 +297,76 @@ app.delete('/products/:id', (req, res) => {
 
 // --- ORDER SYSTEM ---
 // POST /orders - สร้างคำสั่งซื้อ (เฉพาะผู้ใช้ล็อกอิน)
+// POST /check-stock - Check if items are in stock
+app.post('/check-stock', auth, (req, res) => {
+  const { items } = req.body;
+  
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'ไม่มีสินค้าในรายการ' });
+  }
+
+  const checkPromises = items.map(item => {
+    return new Promise((resolve) => {
+      db.getProductById(item.product_id, (err, product) => {
+        if (err || !product) {
+          return resolve({
+            product_id: item.product_id,
+            valid: false,
+            error: 'ไม่พบสินค้า'
+          });
+        }
+
+        const availableQty = product.stock_quantity || 0;
+        const requestedQty = item.quantity || 0;
+        const isValid = availableQty >= requestedQty;
+        
+        resolve({
+          product_id: item.product_id,
+          title: product.title,
+          requested: requestedQty,
+          available: availableQty,
+          valid: isValid
+        });
+      });
+    });
+  });
+
+  Promise.all(checkPromises)
+    .then(results => {
+      const outOfStockItems = results.filter(r => !r.valid);
+      const isValid = outOfStockItems.length === 0;
+      
+      res.json({
+        isValid,
+        results,
+        outOfStockItems: outOfStockItems.map(item => ({
+          product_id: item.product_id,
+          title: item.title,
+          requested: item.requested,
+          available: item.available
+        }))
+      });
+    })
+    .catch(error => {
+      console.error('Error checking stock:', error);
+      res.status(500).json({ error: 'เกิดข้อผิดพลาดในการตรวจสอบสต็อก' });
+    });
+});
+
+// POST /orders
 app.post('/orders', auth, (req, res) => {
   const { shipping_name, shipping_address, items } = req.body;
   console.log('[POST /orders] payload:', { shipping_name, shipping_address, items });
   if (!shipping_name || !shipping_address || !Array.isArray(items) || items.length === 0) {
     console.warn('[POST /orders] Reject: ข้อมูลไม่ครบหรือไม่มีสินค้าในคำสั่งซื้อ', { shipping_name, shipping_address, items });
-    return res.status(400).json({ error: 'ข้อมูลไม่ครบหรือไม่มีสินค้าในคำสั่งซื้อ' });
+    return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วนและมีสินค้าในคำสั่งซื้อ' });
+  }
+  
+  // Validate items structure
+  const invalidItems = items.filter(item => !item.product_id || !item.quantity || !item.price);
+  if (invalidItems.length > 0) {
+    console.warn('[POST /orders] Reject: รายการสินค้าไม่ถูกต้อง', { invalidItems });
+    return res.status(400).json({ error: 'ข้อมูลสินค้าไม่ถูกต้อง' });
   }
   db.addOrder(req.user.id, shipping_name, shipping_address, items, (err, order) => {
     if (err) {
