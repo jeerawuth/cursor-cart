@@ -2,4 +2,5 @@
   padding: 2rem;
   background: #fffbe7;
   border-radius: 8px;
+  min-width: 100vw;
 } 

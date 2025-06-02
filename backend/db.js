@@ -198,12 +198,89 @@ module.exports = {
       cb(null, rows);
     });
   },
+  // Delete a user by ID
+  deleteUser(userId, cb) {
+    const requestId = Math.random().toString(36).substr(2, 9);
+    const log = (message, data = '') => {
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] [DB:${requestId}] ${message}`, data);
+    };
+    
+    log('Starting user deletion process', { userId });
+    
+    // First, check if the user exists
+    db.get('SELECT id, email, role FROM users WHERE id = ?', [userId], (err, user) => {
+      if (err) {
+        log('Error checking if user exists:', err);
+        return cb(err);
+      }
+      
+      if (!user) {
+        log('User not found', { userId });
+        return cb(new Error('User not found'));
+      }
+      
+      log('Starting database transaction');
+      db.run('BEGIN TRANSACTION', (beginErr) => {
+        if (beginErr) {
+          log('Error starting transaction:', beginErr);
+          return cb(beginErr);
+        }
+        
+        // Function to handle the rest of the deletion process
+        const continueDeletion = () => {
+          // 1. Delete user's cart (if exists)
+          log('Deleting user cart');
+          db.run('DELETE FROM carts WHERE user_id = ?', [userId], (cartErr) => {
+            if (cartErr) {
+              log('Error deleting cart (will continue):', cartErr.message);
+              // Continue even if cart deletion fails
+            }
+            
+            // 2. Delete user's orders (order_items will be deleted by CASCADE)
+            log('Deleting user orders');
+            db.run('DELETE FROM orders WHERE user_id = ?', [userId], (orderErr) => {
+              if (orderErr) {
+                log('Error deleting orders (will continue):', orderErr.message);
+                // Continue even if orders deletion fails
+              }
+              
+              // 3. Finally, delete the user
+              log('Deleting user record');
+              db.run('DELETE FROM users WHERE id = ?', [userId], function(userErr) {
+                if (userErr) {
+                  log('Error deleting user:', userErr);
+                  return db.run('ROLLBACK', () => cb(userErr));
+                }
+                
+                // If we got here, everything was successful
+                log('User deletion successful, committing transaction');
+                db.run('COMMIT', (commitErr) => {
+                  if (commitErr) {
+                    log('Error committing transaction:', commitErr.message);
+                    return db.run('ROLLBACK', () => {
+                      log('Transaction rolled back due to commit error');
+                      cb(commitErr);
+                    });
+                  }
+                  log('Transaction committed successfully');
+                  cb(null, { success: true, userId, requestId });
+                });
+              });
+            });
+          });
+        };
+        
+        // Start the deletion process
+        continueDeletion();
+      });
+    });
+  },
   // Update user role
   updateUserRole(userId, role, cb) {
     db.run('UPDATE users SET role = ? WHERE id = ?', [role, userId], function(err) {
       if (err) return cb(err);
-      // Fetch the updated user to return complete data
-      db.get('SELECT id, email, name, role, created_at FROM users WHERE id = ?', [userId], (err, user) => {
+      db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
         if (err) return cb(err);
         cb(null, user);
       });

@@ -344,6 +344,108 @@ app.get('/admin/users', auth, requireRole('admin'), (req, res) => {
   });
 });
 
+// Delete user (admin only)
+app.delete('/admin/users/:id', auth, requireRole('admin'), (req, res) => {
+  const requestId = Math.random().toString(36).substr(2, 9);
+  const log = (message, data = '') => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [${requestId}] ${message}`, data);
+  };
+  
+  log('Delete user request received', { userId: req.params.id, user: req.user });
+  const userId = req.params.id;
+  console.log(`[DELETE /admin/users/${userId}] Received delete request`);
+  
+  if (!userId || isNaN(parseInt(userId))) {
+    console.error('Invalid user ID:', userId);
+    return res.status(400).json({ error: 'Invalid user ID', details: `Received: ${userId}` });
+  }
+  
+  // First check if this is the last admin
+  log('Fetching user from database');
+  db.getUserById(userId, (err, user) => {
+    if (err) {
+      console.error('Error getting user:', err);
+      return res.status(500).json({ 
+        error: 'Failed to verify user',
+        details: err.message 
+      });
+    }
+    
+    if (!user) {
+      console.error('User not found with ID:', userId);
+      return res.status(404).json({ 
+        error: 'User not found',
+        userId: userId
+      });
+    }
+    
+    console.log(`Found user to delete:`, { id: user.id, email: user.email, role: user.role });
+    
+    log('User found', { userId: user.id, role: user.role });
+    
+    if (user.role === 'admin') {
+      log('User is an admin, checking admin count');
+      console.log('User is an admin, checking if last admin...');
+      // Check if this is the last admin
+      log('Fetching all users to check admin count');
+      db.getAllUsers((err, users) => {
+        if (err) {
+          console.error('Error getting all users:', err);
+          return res.status(500).json({ 
+            error: 'Failed to verify admin users',
+            details: err.message
+          });
+        }
+        
+        const adminCount = users.filter(u => u.role === 'admin').length;
+        log('Admin count', { adminCount, totalUsers: users.length });
+        console.log(`Found ${adminCount} admin users in the system`);
+        
+        if (adminCount <= 1) {
+          const errorMsg = 'ไม่สามารถลบผู้ดูแลระบบได้ เนื่องจากเป็นผู้ดูแลระบบคนสุดท้าย';
+          console.error(errorMsg);
+          return res.status(400).json({ 
+            error: errorMsg,
+            adminCount
+          });
+        }
+        
+        // Proceed with deletion if not the last admin
+        console.log('Proceeding with admin user deletion...');
+        deleteUser();
+      });
+    } else {
+      // Proceed with deletion for non-admin users
+      console.log('Proceeding with non-admin user deletion...');
+      deleteUser();
+    }
+  });
+  
+  function deleteUser() {
+    log('Starting user deletion process');
+    console.log(`Attempting to delete user with ID: ${userId}`);
+    log('Calling deleteUser database function');
+    db.deleteUser(userId, (err, result) => {
+      if (err) {
+        console.error('Error in deleteUser:', err);
+        return res.status(500).json({ 
+          error: 'Failed to delete user',
+          details: err.message,
+          stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
+      }
+      log('User deleted successfully', { userId });
+      res.json({ 
+        success: true, 
+        message: 'ลบผู้ใช้เรียบร้อยแล้ว',
+        userId: userId,
+        requestId: requestId
+      });
+    });
+  }
+});
+
 // Update user role (admin only)
 app.put('/admin/users/:id/role', auth, requireRole('admin'), (req, res) => {
   console.log('Role update request received:', req.params.id, req.body);
