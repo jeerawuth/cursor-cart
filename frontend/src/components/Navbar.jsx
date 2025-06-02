@@ -25,41 +25,45 @@ const Navbar = () => {
   return (
     <nav className={styles.navbar}>
       <div className={styles.navbarContent}>
-        <ul className={styles.navLinks}>
-          <li><Link to="/">หน้าแรก</Link></li>
-          <li><Link to="/products">สินค้า</Link></li>
-          
-          {/* Show cart only for customers or when admin is in customer view */}
-          {(user?.role === 'customer' || isCustomerView) && (
-            <>
-              <li>
-                <Link to="/cart">
-                  ตะกร้า <span className={styles.cartCount}>{cartCount > 0 ? `(${cartCount})` : ''}</span>
-                </Link>
-              </li>
-              <li>
-                <Link to="/orders">คำสั่งซื้อ</Link>
-              </li>
-            </>
-          )}
-          
-          <li><Link to="/profile">โปรไฟล์</Link></li>
-          
+        <div className={styles.navSection}>
+          <ul className={styles.navLinks}>
+            <li><Link to="/">หน้าแรก</Link></li>
+            <li><Link to="/products">สินค้า</Link></li>
+            
+            {/* Show cart only for customers or when admin is in customer view */}
+            {(user?.role === 'customer' || isCustomerView) && (
+              <>
+                <li>
+                  <Link to="/cart">
+                    ตะกร้า <span className={styles.cartCount}>{cartCount > 0 ? `(${cartCount})` : ''}</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/orders">คำสั่งซื้อ</Link>
+                </li>
+              </>
+            )}
+            
+            <li><Link to="/profile">โปรไฟล์</Link></li>
+          </ul>
+        </div>
+        
+        <div className={styles.navActions}>
           {!user ? (
-            <li><Link to="/login">เข้าสู่ระบบ</Link></li>
+            <Link to="/login" className={styles.loginLink}>เข้าสู่ระบบ</Link>
           ) : (
-            <li className={styles.userInfo}>
+            <div className={styles.userInfo}>
               <span>สวัสดี, {user.name}</span>
               {isAdmin && (
                 <span className={`${styles.adminBadge} ${isCustomerView ? styles.customerView : ''}`}>
                   {isCustomerView ? 'โหมดลูกค้า' : 'โหมดผู้ดูแลระบบ'}
                 </span>
               )}
-            </li>
+            </div>
           )}
           
-          {isAdmin && (
-            <li>
+          <div className={styles.actionButtons}>
+            {isAdmin && (
               <button 
                 onClick={toggleCustomerView}
                 className={styles.toggleModeBtn}
@@ -67,25 +71,21 @@ const Navbar = () => {
               >
                 สลับโหมด
               </button>
-            </li>
-          )}
-          
-          {isAdmin && (
-            <li>
+            )}
+            
+            {isAdmin && (
               <Link to="/admin" className={styles.adminLink}>
                 แดชบอร์ด
               </Link>
-            </li>
-          )}
-          
-          {user && (
-            <li className={styles.logoutContainer}>
+            )}
+            
+            {user && (
               <button onClick={handleLogout} className={styles.logoutBtn}>
                 ออกจากระบบ
               </button>
-            </li>
-          )}
-        </ul>
+            )}
+          </div>
+        </div>
       </div>
     </nav>
   );

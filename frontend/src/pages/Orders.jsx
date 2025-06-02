@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { fetchProducts } from '../api/products';
-import '../styles/Orders.css';
+import styles from './Orders.module.css';
 
 // สถานะคำสั่งซื้อ
 const ORDER_STATUS = {
@@ -16,12 +16,12 @@ const ORDER_STATUS = {
 
 // แท็บสถานะคำสั่งซื้อ
 const statusTabs = [
-  { id: ORDER_STATUS.ALL, label: 'ทั้งหมด' },
   { id: ORDER_STATUS.PENDING, label: 'รอดำเนินการ' },
   { id: ORDER_STATUS.PAID, label: 'ชำระเงินแล้ว' },
   { id: ORDER_STATUS.SHIPPED, label: 'กำลังจัดส่ง' },
   { id: ORDER_STATUS.DELIVERED, label: 'จัดส่งสำเร็จ' },
-  { id: ORDER_STATUS.CANCELLED, label: 'ยกเลิก' }
+  { id: ORDER_STATUS.CANCELLED, label: 'ยกเลิก' },
+  { id: ORDER_STATUS.ALL, label: 'ทั้งหมด' }
 ];
 
 // ฟังก์ชันแปลงสถานะเป็นข้อความภาษาไทย
@@ -103,22 +103,32 @@ export default function Orders() {
 
   // Show loading state while checking auth or loading data
   if (isAuthLoading || isLoading) {
-    return <div style={{ padding: '20px', textAlign: 'center' }}>กำลังโหลดข้อมูล...</div>;
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner}></div>
+        <p>กำลังโหลดข้อมูล...</p>
+      </div>
+    );
   }
 
   // If no token and not loading, show login prompt
   if (!token) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
+      <div className={styles.errorContainer}>
         <p>กรุณาเข้าสู่ระบบเพื่อดูคำสั่งซื้อ</p>
-        <button onClick={() => navigate('/login')}>เข้าสู่ระบบ</button>
+        <button 
+          className={styles.retryButton}
+          onClick={() => navigate('/login')}
+        >
+          เข้าสู่ระบบ
+        </button>
       </div>
     );
   }
 
   // Show tabs even when there are no orders in the current filter
   const renderEmptyState = () => (
-    <div className="no-orders">
+    <div className={styles.noOrders}>
       <p>{orders.length === 0 ? 'ยังไม่มีคำสั่งซื้อ' : 'ไม่พบคำสั่งซื้อในหมวดหมู่นี้'}</p>
     </div>
   );
@@ -131,18 +141,18 @@ export default function Orders() {
 
   // Always show the tabs, even when there are no orders
   const renderTabs = () => (
-    <div className="status-tabs">
+    <div className={styles.statusTabs}>
       {statusTabs.map(tab => {
         const count = getOrderCountByStatus(tab.id);
         return (
           <button
             key={tab.id}
-            className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+            className={`${styles.tabButton} ${activeTab === tab.id ? styles.active : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
             {tab.label}
             {count > 0 && (
-              <span className="tab-count">
+              <span className={styles.tabCount}>
                 {count}
               </span>
             )}
@@ -155,8 +165,8 @@ export default function Orders() {
   // If there are no orders at all
   if (!orders.length) {
     return (
-      <div className="orders-container">
-        <h2>คำสั่งซื้อของฉัน</h2>
+      <div className={styles.ordersContainer}>
+        <h2 className={styles.title}>คำสั่งซื้อของฉัน</h2>
         {renderTabs()}
         {renderEmptyState()}
       </div>
@@ -164,8 +174,8 @@ export default function Orders() {
   }
 
   return (
-    <div className="orders-container">
-      <h2>คำสั่งซื้อของฉัน</h2>
+    <div className={styles.ordersContainer}>
+      <h2 className={styles.title}>คำสั่งซื้อของฉัน</h2>
       
       {/* Render tabs */}
       {renderTabs()}
@@ -174,52 +184,57 @@ export default function Orders() {
       {!filteredOrders.length ? (
         renderEmptyState()
       ) : (
-        <div className="orders-list">
+        <div className={styles.ordersList}>
           {filteredOrders.map(order => (
-            <div key={order.id} className="order-card">
-              <div className="order-header">
-                <span className="order-id">#ORD-{order.id}</span>
-                <span className={`status-badge ${order.status}`}>
+            <div key={order.id} className={styles.orderCard}>
+              <div className={styles.orderHeader}>
+                <span className={styles.orderId}>#ORD-{order.id}</span>
+                <span className={`${styles.statusBadge} ${styles[order.status]}`}>
                   {getStatusLabel(order.status)}
                 </span>
               </div>
-              <div className="order-details">
-                <div className="detail-row">
-                  <span className="detail-label">ชื่อผู้รับ:</span>
+              <div className={styles.orderDetails}>
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>ชื่อผู้รับ:</span>
                   <span>{order.shipping_name}</span>
                 </div>
-                <div className="detail-row">
-                  <span className="detail-label">ที่อยู่:</span>
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>ที่อยู่:</span>
                   <span>{order.shipping_address}</span>
                 </div>
-                <div className="detail-row">
-                  <span className="detail-label">วันที่สั่ง:</span>
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>วันที่สั่ง:</span>
                   <span>{new Date(order.created_at).toLocaleDateString('th-TH')}</span>
                 </div>
               </div>
               
-              <div className="order-items">
-                <div className="items-label">สินค้า:</div>
+              <div className={styles.orderItems}>
+                <div className={styles.itemsLabel}>สินค้า:</div>
                 <ul>
                   {order.items.map(item => {
                     const prod = products.find(p => p.id === item.product_id);
                     return (
-                      <li key={item.id} className="order-item">
+                      <li key={item.id} className={styles.orderItem}>
                         {prod && (
                           <img 
                             src={prod.image} 
                             alt={prod.title} 
-                            className="product-image"
+                            className={styles.productImage}
+                            onError={(e) => {
+                              if (e.target.src !== 'https://via.placeholder.com/60') {
+                                e.target.src = 'https://via.placeholder.com/60';
+                              }
+                            }}
                           />
                         )}
-                        <div className="item-details">
-                          <div className="item-title">
+                        <div className={styles.itemDetails}>
+                          <div className={styles.itemTitle}>
                             {prod ? prod.title : `สินค้า #${item.product_id}`}
                           </div>
-                          <div className="item-quantity">
+                          <div className={styles.itemQuantity}>
                             จำนวน {item.quantity} ชิ้น
                           </div>
-                          <div className="item-price">
+                          <div className={styles.itemPrice}>
                             ราคา {item.price} บาท
                           </div>
                         </div>
@@ -229,10 +244,10 @@ export default function Orders() {
                 </ul>
               </div>
               
-              <div className="order-total">
+              <div className={styles.orderTotal}>
                 <span>รวมทั้งหมด:</span>
-                <span className="total-amount">
-                  {order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)} บาท
+                <span className={styles.totalAmount}>
+                  {order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)} บาท
                 </span>
               </div>
             </div>

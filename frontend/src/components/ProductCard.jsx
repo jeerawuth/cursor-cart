@@ -30,9 +30,7 @@ const ProductCard = ({ product, onAddToCart }) => {
           )}
         </div>
       </div>
-      {user?.role === 'admin' && !isCustomerView && (
-        <div className={styles.adminBadge}>Admin View</div>
-      )}
+      {/* Admin badge removed as it's already shown in the navbar */}
     </div>
   );
 };

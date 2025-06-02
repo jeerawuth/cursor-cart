@@ -1,24 +1,104 @@
 .navbar {
   background: #222;
-  padding: 1rem 2rem;
+  padding: 0 2rem;
   position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 60px;
 }
 
 .navbarContent {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0 1rem;
+  width: 100%;
+  min-height: 60px; /* Ensure consistent height */
+}
+
+.navSection {
+  flex: 1;
+}
+
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  height: 100%;
+  padding: 0.5rem 0;
+}
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure all buttons have the same height */
+.logoutBtn,
+.toggleModeBtn,
+.adminLink,
+.loginLink {
+  height: 36px;
+  min-width: 80px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  line-height: 1;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.2s;
+  margin: 0;
+  border: 1px solid transparent;
+  text-decoration: none;
+  font-size: 1rem;
+  cursor: pointer;
 }
 
 .navLinks {
   list-style: none;
   display: flex;
+  align-items: center;
   gap: 1.5rem;
   margin: 0;
   padding: 0;
   flex-wrap: wrap;
+  height: 100%;
+}
+
+.navLinks li {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.navLinks a {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 0.5rem;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+  position: relative;
+  border-bottom: 2px solid transparent;
+}
+
+.navLinks a:hover {
+  color: #ffd700;
+}
+
+.navLinks > li {
+  display: flex;
+  align-items: center;
 }
 
 .navLinks a {
@@ -41,20 +121,33 @@
   margin-left: 4px;
 }
 
-.logoutBtn {
+.logoutBtn,
+.toggleModeBtn,
+.adminLink {
   background: none;
-  border: 1px solid #ff4444;
-  color: #ff6b6b;
+  border: 1px solid;
   cursor: pointer;
   font: inherit;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
-  transition: all 0.2s;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
   text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.logoutBtn {
+  border-color: #ff4444;
+  color: #ff6b6b;
+  background-color: rgba(255, 77, 77, 0.1);
 }
 
 .logoutBtn:hover {
-  background-color: rgba(255, 0, 0, 0.1);
+  background-color: rgba(255, 77, 77, 0.2);
   color: #ff3333;
 }
 
@@ -62,11 +155,29 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-right: auto;
+  margin: 0;
+  padding: 0 0.5rem;
+  white-space: nowrap;
+  font-size: 0.95rem;
+  height: 100%;
+  line-height: 1.5;
 }
 
+.loginLink {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 0;
+  transition: color 0.2s;
+}
+
+.loginLink:hover {
+  color: #ffd700;
+}
+
+/* Align all buttons in the same row */
 .logoutContainer {
-  margin-left: auto;
+  margin-left: 0;
 }
 
 .adminBadge {
@@ -86,37 +197,64 @@
 
 .toggleModeBtn {
   background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
   color: #fff;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: all 0.2s;
-  white-space: nowrap;
+  margin: 0 0.25rem;
 }
 
 .toggleModeBtn:hover {
   background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .adminLink {
   background-color: #4a6fa5;
-  padding: 0.25rem 0.75rem !important;
-  border-radius: 4px;
-  margin-left: 0.5rem;
-  transition: background-color 0.2s;
+  border-color: #3a5a80;
+  color: #fff !important;
+  margin: 0 0.25rem;
 }
 
 .adminLink:hover {
   background-color: #3a5a80;
   color: #fff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Responsive adjustments */
+@media (max-width: 1024px) {
+  .navbarContent {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+  }
+  
+  .navSection {
+    width: 100%;
+  }
+  
+  .navLinks {
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .navActions {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .actionButtons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
 @media (max-width: 768px) {
   .navbar {
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
   }
   
   .navLinks {
@@ -124,13 +262,20 @@
     font-size: 0.9rem;
   }
   
-  .adminBadge, 
-  .toggleModeBtn {
-    font-size: 0.65rem;
+  .logoutBtn,
+  .toggleModeBtn,
+  .adminLink,
+  .loginLink {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  .adminBadge {
+    font-size: 0.7rem;
     padding: 0.15rem 0.5rem;
   }
   
-  .logoutBtn {
-    padding: 0.15rem 0.5rem;
+  .userInfo {
+    font-size: 0.9rem;
   }
 }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { fetchProducts } from '../api/products';
-import '../styles/Orders.css';
+import styles from './AdminOrderManager.module.css';
 
 // สถานะคำสั่งซื้อ
 const ORDER_STATUS = {
@@ -197,16 +197,37 @@ export default function AdminOrderManager() {
     );
   }
 
+  // Loading state
+  const renderLoading = () => (
+    <div className={styles.loadingContainer}>
+      <div className={styles.loadingSpinner}></div>
+      <p>กำลังโหลดข้อมูล...</p>
+    </div>
+  );
+
+  // Error state
+  const renderError = () => (
+    <div className={styles.errorContainer}>
+      <p className={styles.errorText}>{error}</p>
+      <button 
+        className={styles.retryButton}
+        onClick={() => window.location.reload()}
+      >
+        โหลดใหม่
+      </button>
+    </div>
+  );
+
   // Empty state for no orders
   const renderEmptyState = () => (
-    <div className="no-orders">
+    <div className={styles.noOrders}>
       <p>ยังไม่มีคำสั่งซื้อในระบบ</p>
     </div>
   );
 
   // Empty state for no matching orders in current filter
   const renderNoMatchingOrders = () => (
-    <div className="no-orders">
+    <div className={styles.noOrders}>
       <p>ไม่พบคำสั่งซื้อในหมวดหมู่นี้</p>
     </div>
   );
@@ -235,23 +256,31 @@ export default function AdminOrderManager() {
   );
 
   // Main render
+  if (isLoading) {
+    return renderLoading();
+  }
+
+  if (error) {
+    return renderError();
+  }
+
   return (
-    <div className="orders-container">
-      <h2>จัดการคำสั่งซื้อ</h2>
+    <div className={styles.ordersContainer}>
+      <h2 className={styles.title}>จัดการคำสั่งซื้อ</h2>
       
       {/* Render tabs */}
-      <div className="status-tabs">
+      <div className={styles.statusTabs}>
         {statusTabs.map(tab => {
           const count = getOrderCountByStatus(tab.id);
           return (
             <button
               key={tab.id}
-              className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+              className={`${styles.tabButton} ${activeTab === tab.id ? styles.active : ''}`}
               onClick={() => setActiveTab(tab.id)}
             >
               {tab.label}
               {count > 0 && (
-                <span className="tab-count">
+                <span className={styles.tabCount}>
                   {count}
                 </span>
               )}
@@ -266,43 +295,48 @@ export default function AdminOrderManager() {
       ) : !filteredOrders.length ? (
         renderNoMatchingOrders()
       ) : (
-        <div className="orders-list">
+        <div className={styles.ordersList}>
           {filteredOrders.map(order => (
-            <div key={order.id} className="order-card">
-              <div className="order-header">
-                <span className="order-id">#ORD-{order.id}</span>
-                <span className={`status-badge ${order.status}`}>
+            <div key={order.id} className={styles.orderCard}>
+              <div className={styles.orderHeader}>
+                <span className={styles.orderId}>#ORD-{order.id}</span>
+                <span className={`${styles.statusBadge} ${styles[order.status]}`}>
                   {getStatusLabel(order.status)}
                 </span>
               </div>
               
-              <div className="order-details">
-                <div className="customer-info">
+              <div className={styles.orderDetails}>
+                <div className={styles.customerInfo}>
                   <p><strong>ผู้ใช้:</strong> {order.user_email}</p>
                   <p><strong>ชื่อผู้รับ:</strong> {order.shipping_name}</p>
                   <p><strong>ที่อยู่:</strong> {order.shipping_address}</p>
                   <p><strong>วันที่สั่ง:</strong> {new Date(order.created_at).toLocaleString('th-TH')}</p>
                 </div>
                 
-                <div className="order-items">
+                <div className={styles.orderItems}>
                   <h4>สินค้า:</h4>
                   <ul>
                     {order.items.map(item => {
                       const prod = products.find(p => p.id === item.product_id);
                       return (
-                        <li key={item.id} className="order-item">
+                        <li key={item.id} className={styles.orderItem}>
                           {prod && (
                             <img 
-                              src={prod.image} 
+                              src={prod.image || 'https://via.placeholder.com/60'} 
                               alt={prod.title} 
-                              className="product-image"
+                              className={styles.productImage}
+                              onError={(e) => {
+                                if (e.target.src !== 'https://via.placeholder.com/60') {
+                                  e.target.src = 'https://via.placeholder.com/60';
+                                }
+                              }}
                             />
                           )}
-                          <div className="item-details">
-                            <span className="product-title">
+                          <div className={styles.itemDetails}>
+                            <span className={styles.itemName}>
                               {prod ? prod.title : `สินค้า #${item.product_id}`}
                             </span>
-                            <div className="item-meta">
+                            <div className={styles.itemPrice}>
                               <span>จำนวน: {item.quantity}</span>
                               <span>ราคา: {item.price} บาท</span>
                               <span>รวม: {item.quantity * item.price} บาท</span>
@@ -314,22 +348,24 @@ export default function AdminOrderManager() {
                   </ul>
                 </div>
                 
-                <div className="order-total">
-                  <span>ยอดรวมทั้งหมด:</span>
-                  <span className="total-amount">
-                    {order.items.reduce((sum, item) => sum + (item.quantity * item.price), 0)} บาท
+                <div className={styles.orderTotal}>
+                  <span>ยอดรวมทั้งหมด: </span>
+                  <span>
+                    {order.items.reduce((sum, item) => sum + (item.quantity * item.price), 0).toFixed(2)} บาท
                   </span>
                 </div>
                 
-                <div className="status-update">
-                  <label>
-                    เปลี่ยนสถานะ:
+                <div className={styles.orderActions}>
+                  <div className={styles.statusUpdateContainer}>
+                    <label className={styles.statusUpdateLabel}>
+                      เปลี่ยนสถานะ:
+                    </label>
                     <select
                       value={order.status}
                       onChange={e => handleStatusChange(order.id, e.target.value, order.status)}
                       disabled={statusUpdating === order.id}
-                      className="status-select"
-                      data-order-id={order.id}
+                      className={styles.statusSelect}
+                      aria-label="เปลี่ยนสถานะคำสั่งซื้อ"
                     >
                       <option value="pending">รอดำเนินการ</option>
                       <option value="paid">ชำระเงินแล้ว</option>
@@ -337,8 +373,10 @@ export default function AdminOrderManager() {
                       <option value="delivered">จัดส่งสำเร็จ</option>
                       <option value="cancelled">ยกเลิก</option>
                     </select>
-                    {statusUpdating === order.id && <span className="updating-text">กำลังอัปเดต...</span>}
-                  </label>
+                    {statusUpdating === order.id && (
+                      <span className={styles.updatingText}>กำลังอัปเดต...</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
