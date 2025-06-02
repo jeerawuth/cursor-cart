@@ -67,7 +67,7 @@ const ProductDetail = () => {
               {product.stock_quantity > 0 ? `มีสินค้า: ${product.stock_quantity} ชิ้น` : 'สินค้าหมด'}
             </p>
           )}
-          {user?.role !== 'admin' && (
+          {user?.role === 'customer' && (
             <button 
               onClick={handleAddToCart}
               disabled={product.stock_quantity <= 0}

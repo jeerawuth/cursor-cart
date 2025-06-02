@@ -7,8 +7,8 @@ const ProductCard = ({ product, onAddToCart }) => {
   const user = useAuthStore(state => state.user);
   const { isCustomerView } = useAdminMode();
   
-  // Show add to cart button for customers or admin in customer view
-  const showAddToCart = !user || user.role === 'customer' || isCustomerView;
+  // Show add to cart button only for logged-in customers or admin in customer view
+  const showAddToCart = user && (user.role === 'customer' || isCustomerView);
   const isOutOfStock = product.stock_quantity !== undefined && product.stock_quantity <= 0;
 
   return (
