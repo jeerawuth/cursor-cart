@@ -1,11 +1,11 @@
 .container {
   padding: 2rem;
-  width: 100%;
+  width: 100vw;
   max-width: 100%;
   margin: 0;
   font-family: Arial, sans-serif;
   box-sizing: border-box;
-  min-width: 100vw;
+  min-height: 100vh;
 }
 
 .tableContainer {

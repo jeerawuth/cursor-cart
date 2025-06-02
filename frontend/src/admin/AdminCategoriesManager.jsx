@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import styles from './AdminProductManager.module.css';
+import styles from './AdminCategoriesManager.module.css';
 
 const API_URL = 'http://localhost:4000/categories';
 
@@ -204,29 +204,23 @@ const AdminCategoriesManager = () => {
   };
 
   return (
-    <div className={styles.adminDashboard}>
-      {popup && (
-        <div className={styles.popup}>
-          {popup}
-        </div>
-      )}
-      
+    <div className={styles.container}>
       <div className={styles.header}>
-        <h2 className={styles.title}>จัดการหมวดหมู่สินค้า</h2>
+        <h1 className={styles.title}>จัดการหมวดหมู่สินค้า</h1>
         <button 
+          className={styles.addButton} 
           onClick={() => {
             setForm({ categoryName: '', categoryNote: '' });
             setEditingId(null);
             setShowAddModal(true);
           }}
-          className={styles.addButton}
         >
-          <span>+</span> เพิ่มหมวดหมู่
+          เพิ่มหมวดหมู่
         </button>
       </div>
-      
-      {error && <div className={styles.error}>{error}</div>}
-      {success && <div className={styles.success}>{success}</div>}
+
+      {error && <div className={styles.errorMessage}>{error}</div>}
+      {success && <div className={styles.successMessage}>{success}</div>}
 
       <div className={styles.tableContainer}>
         <table className={styles.table}>
@@ -234,96 +228,107 @@ const AdminCategoriesManager = () => {
             <tr>
               <th>ชื่อหมวดหมู่</th>
               <th>หมายเหตุ</th>
-              <th>วันที่สร้าง</th>
-              <th>วันที่อัปเดต</th>
-              <th>การจัดการ</th>
+              <th>จัดการ</th>
             </tr>
           </thead>
           <tbody>
-            {categories.map((category) => (
-              <tr key={category.categoryId}>
-                <td>{category.categoryName}</td>
-                <td>{category.categoryNote || '-'}</td>
-                <td>{new Date(category.createdAt).toLocaleDateString('th-TH')}</td>
-                <td>{new Date(category.updatedAt).toLocaleDateString('th-TH')}</td>
-                <td>
-                  <div className={styles.actionButtons}>
+            {categories.length === 0 ? (
+              <tr>
+                <td colSpan="3" className={styles.empty}>ไม่พบข้อมูลหมวดหมู่</td>
+              </tr>
+            ) : (
+              categories.map((category) => (
+                <tr key={category.categoryId}>
+                  <td>{category.categoryName}</td>
+                  <td>{category.categoryNote || '-'}</td>
+                  <td>
                     <button 
+                      className={`${styles.actionButton} ${styles.editButton}`}
                       onClick={() => handleEdit(category)}
-                      className={styles.editButton}
                     >
                       แก้ไข
                     </button>
                     <button 
+                      className={`${styles.actionButton} ${styles.deleteButton}`}
                       onClick={() => handleDelete(category.categoryId)}
-                      className={styles.deleteButton}
                     >
                       ลบ
                     </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {categories.length === 0 && (
-              <tr>
-                <td colSpan="5" style={{ textAlign: 'center' }}>ไม่พบข้อมูลหมวดหมู่</td>
-              </tr>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
       </div>
 
-      {/* Add/Edit Category Modal */}
       {showAddModal && (
-        <div className={styles.modalOverlay}>
+        <div className={styles.modal}>
           <div className={styles.modalContent}>
-            <button 
-              className={styles.closeButton}
-              onClick={handleCancel}
-            >
-              &times;
-            </button>
-            <h2>{editingId ? 'แก้ไขหมวดหมู่' : 'เพิ่มหมวดหมู่ใหม่'}</h2>
-            <form onSubmit={handleSubmit} className={styles.form}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>
+                {editingId ? 'แก้ไขหมวดหมู่' : 'เพิ่มหมวดหมู่ใหม่'}
+              </h2>
+              <button 
+                className={styles.closeButton}
+                onClick={() => setShowAddModal(false)}
+              >
+                &times;
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit}>
               <div className={styles.formGroup}>
-                <label className={styles.label}>ชื่อหมวดหมู่</label>
+                <label className={styles.formLabel}>ชื่อหมวดหมู่ *</label>
                 <input
                   type="text"
                   name="categoryName"
                   value={form.categoryName}
                   onChange={handleChange}
-                  className={styles.input}
+                  className={styles.formInput}
+                  placeholder="ระบุชื่อหมวดหมู่"
                   required
                 />
               </div>
+              
               <div className={styles.formGroup}>
-                <label className={styles.label}>หมายเหตุ (ไม่บังคับ)</label>
-                <input
-                  type="text"
+                <label className={styles.formLabel}>หมายเหตุ</label>
+                <textarea
                   name="categoryNote"
                   value={form.categoryNote}
                   onChange={handleChange}
-                  className={styles.input}
+                  className={styles.formTextarea}
+                  placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"
                 />
               </div>
-              <div className={styles.formActions}>
+              
+              <div className={styles.buttonGroup}>
+                <button 
+                  type="submit" 
+                  className={styles.submitButton}
+                  disabled={loading}
+                >
+                  {loading ? 'กำลังดำเนินการ...' : 'บันทึก'}
+                </button>
                 <button 
                   type="button" 
-                  onClick={handleCancel}
                   className={styles.cancelButton}
+                  onClick={() => setShowAddModal(false)}
                   disabled={loading}
                 >
                   ยกเลิก
                 </button>
-                <button 
-                  type="submit" 
-                  className={styles.saveButton}
-                  disabled={loading}
-                >
-                  {loading ? 'กำลังบันทึก...' : 'บันทึก'}
-                </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {popup && (
+        <div className={styles.popup}>
+          <div className={styles.popupContent}>
+            <p>{popup}</p>
+            <button onClick={() => setPopup('')}>ตกลง</button>
           </div>
         </div>
       )}
