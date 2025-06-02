@@ -10,6 +10,7 @@ const AdminDashboard = () => {
         <li><Link to="/admin/products">จัดการสินค้า</Link></li>
         <li><Link to="/admin/orders">ดูคำสั่งซื้อ</Link></li>
         <li><Link to="/admin/users">ดูผู้ใช้งาน</Link></li>
+        <li><Link to="/admin/categories">จัดการหมวดหมู่สินค้า</Link></li>
       </ul>
     </div>
   );

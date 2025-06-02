@@ -9,10 +9,18 @@ const ProductCard = ({ product, onAddToCart }) => {
   
   // Show add to cart button for customers or admin in customer view
   const showAddToCart = !user || user.role === 'customer' || isCustomerView;
+  const isOutOfStock = product.stock_quantity !== undefined && product.stock_quantity <= 0;
 
   return (
     <div className={styles.card}>
-      <img src={product.image} alt={product.title} className={styles.productImage} />
+      <div className={styles.imageContainer}>
+        <img 
+          src={product.image} 
+          alt={product.title} 
+          className={`${styles.productImage} ${isOutOfStock ? styles.outOfStockImage : ''}`} 
+        />
+        {isOutOfStock && <div className={styles.outOfStockBadge}>หมดสต๊อก</div>}
+      </div>
       <div className={styles.cardBody}>
         <h3 className={styles.productTitle}>{product.title}</h3>
         <p className={styles.productPrice}>{product.price.toLocaleString()} บาท</p>
@@ -23,18 +31,14 @@ const ProductCard = ({ product, onAddToCart }) => {
           {showAddToCart && (
             <button 
               onClick={() => onAddToCart(product)} 
-              className={`${styles.addToCartBtn} ${product.stock_quantity <= 0 ? styles.disabledBtn : ''}`}
-              disabled={product.stock_quantity <= 0}
+              className={`${styles.addToCartBtn} ${isOutOfStock ? styles.disabledBtn : ''}`}
+              disabled={isOutOfStock}
             >
-              {product.stock_quantity > 0 ? 'เพิ่มลงตะกร้า' : 'สินค้าหมด'}
+              {isOutOfStock ? 'สินค้าหมด' : 'เพิ่มลงตะกร้า'}
             </button>
-          )}
-          {product.stock_quantity !== undefined && product.stock_quantity <= 0 && (
-            <p className={styles.outOfStockText}>สินค้าหมดสต็อก</p>
           )}
         </div>
       </div>
-      {/* Admin badge removed as it's already shown in the navbar */}
     </div>
   );
 };

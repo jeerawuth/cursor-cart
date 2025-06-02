@@ -1,5 +1,110 @@
 .productList {
   padding: 2rem;
+  width: 100vw;
+  max-width: 100%;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  align-items: flex-end;
+}
+
+.searchForm {
+  display: flex;
+  flex: 1;
+  min-width: 250px;
+  max-width: 400px;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px 0 0 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.searchButton {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 0 1.25rem;
+  border-radius: 0 6px 6px 0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.searchButton:hover {
+  background: #0056b3;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+}
+
+.filterGroup label {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.selectInput {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  background-color: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.selectInput:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 0;
+  color: #666;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 123, 255, 0.2);
+  border-radius: 50%;
+  border-top-color: #007bff;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.noResults {
+  text-align: center;
+  padding: 3rem 0;
+  color: #666;
+  font-size: 1.1rem;
 }
 .grid {
   display: grid;

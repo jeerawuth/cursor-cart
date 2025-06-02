@@ -102,6 +102,33 @@ module.exports = {
   getAllProducts(cb) {
     db.all('SELECT * FROM products', cb);
   },
+  
+  getProductsByCategory(category, cb) {
+    if (!category) return this.getAllProducts(cb);
+    
+    // First, get the category name from the categories table
+    db.get('SELECT categoryName FROM categories WHERE categoryId = ?', [category], (err, catRow) => {
+      if (err) return cb(err);
+      if (!catRow) return cb({ status: 404, message: 'ไม่พบหมวดหมู่นี้' });
+      
+      const categoryName = catRow.categoryName;
+      
+      // Then get products with matching category name
+      db.all(
+        'SELECT * FROM products WHERE category = ?', 
+        [categoryName], 
+        (err, products) => {
+          if (err) {
+            console.error('Error fetching products by category:', err);
+            return cb(err);
+          }
+          cb(null, products || []);
+        }
+      );
+    });
+  },
+  
+  // Get single product by ID
   getProductById(id, cb) {
     db.get('SELECT * FROM products WHERE id = ?', [id], (err, product) => {
       if (err) return cb(err);
@@ -418,10 +445,126 @@ module.exports = {
       }
     );
   },
-  // เคลียร์ cart
-  clearCart(userId, cb) {
-    db.run('DELETE FROM carts WHERE user_id = ?', [userId], function (err) {
-      cb(err);
+  // Clear cart
+  clearCart: function(userId, cb) {
+    db.run('DELETE FROM carts WHERE user_id = ?', [userId], function(err) {
+      if (err) {
+        console.error('Error clearing cart:', err);
+        return cb(err);
+      }
+      cb(null, { success: true });
+    });
+  },
+  
+  // --- CATEGORIES ---
+  // Get all categories
+  getAllCategories: function(cb) {
+    db.all('SELECT * FROM categories ORDER BY categoryName', [], (err, rows) => {
+      if (err) {
+        console.error('Error getting categories:', err);
+        return cb(err);
+      }
+      cb(null, rows);
+    });
+  },
+
+  // Get single category by ID
+  getCategoryById: function(categoryId, cb) {
+    db.get('SELECT * FROM categories WHERE categoryId = ?', [categoryId], (err, row) => {
+      if (err) {
+        console.error('Error getting category:', err);
+        return cb(err);
+      }
+      if (!row) return cb({ status: 404, message: 'Category not found' });
+      cb(null, row);
+    });
+  },
+
+  // Create new category
+  createCategory: function(category, cb) {
+    const { categoryName, categoryNote } = category;
+    if (!categoryName) return cb({ status: 400, message: 'Category name is required' });
+    
+    db.run(
+      'INSERT INTO categories (categoryName, categoryNote) VALUES (?, ?)',
+      [categoryName, categoryNote || null],
+      function(err) {
+        if (err) {
+          console.error('Error creating category:', err);
+          if (err.code === 'SQLITE_CONSTRAINT') {
+            return cb({ status: 400, message: 'มีชื่อหมวดหมู่นี้อยู่แล้ว' });
+          }
+          return cb(err);
+        }
+        
+        // Get the newly created category
+        db.get('SELECT * FROM categories WHERE categoryId = ?', [this.lastID], (err, row) => {
+          if (err) {
+            console.error('Error fetching created category:', err);
+            return cb(err);
+          }
+          if (!row) {
+            console.error('Created category not found');
+            return cb(new Error('ไม่สามารถสร้างหมวดหมู่ได้'));
+          }
+          cb(null, row);
+        });
+      }
+    );
+  },
+
+  // Update category
+  updateCategory: function(categoryId, category, cb) {
+    const { categoryName, categoryNote } = category;
+    if (!categoryName) return cb({ status: 400, message: 'Category name is required' });
+    
+    db.run(
+      'UPDATE categories SET categoryName = ?, categoryNote = ?, updatedAt = CURRENT_TIMESTAMP WHERE categoryId = ?',
+      [categoryName, categoryNote || null, categoryId],
+      function(err) {
+        if (err) {
+          console.error('Error updating category:', err);
+          if (err.code === 'SQLITE_CONSTRAINT') {
+            return cb({ status: 400, message: 'Category name already exists' });
+          }
+          return cb(err);
+        }
+        if (this.changes === 0) {
+          return cb({ status: 404, message: 'Category not found' });
+        }
+        db.get('SELECT * FROM categories WHERE categoryId = ?', [categoryId], cb);
+      }
+    );
+  },
+
+  // Delete category
+  deleteCategory: function(categoryId, cb) {
+    // First get the category name
+    db.get('SELECT categoryName FROM categories WHERE categoryId = ?', [categoryId], (err, category) => {
+      if (err) return cb(err);
+      if (!category) {
+        return cb({ status: 404, message: 'Category not found' });
+      }
+      
+      // Check if there are any products using this category name
+      db.get('SELECT COUNT(*) as count FROM products WHERE category = ?', [category.categoryName], (err, row) => {
+        if (err) return cb(err);
+        if (row.count > 0) {
+          return cb({ status: 400, message: 'ไม่สามารถลบหมวดหมู่ที่มีสินค้าอยู่ได้' });
+        }
+        
+        // If no products are using this category, delete it
+        db.run('DELETE FROM categories WHERE categoryId = ?', [categoryId], function(err) {
+          if (err) {
+            console.error('Error deleting category:', err);
+            return cb(err);
+          }
+          if (this.changes === 0) {
+            return cb({ status: 404, message: 'ไม่พบหมวดหมู่' });
+          }
+          cb(null, { success: true });
+        });
+      });
     });
   }
 };

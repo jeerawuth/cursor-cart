@@ -157,9 +157,11 @@ app.get('/debug/products/all', (req, res) => {
   });
 });
 
-// Get all products
+// Get all products with optional category filter
 app.get('/products', (req, res) => {
-  db.getAllProducts((err, products) => {
+  const { category } = req.query;
+  
+  const callback = (err, products) => {
     if (err) {
       console.error('Error fetching products from sqlite:', err.message);
       return res.status(500).json({ error: 'Failed to fetch products' });
@@ -174,7 +176,13 @@ app.get('/products', (req, res) => {
       }
     }));
     res.json(mapped);
-  });
+  };
+
+  if (category) {
+    db.getProductsByCategory(category, callback);
+  } else {
+    db.getAllProducts(callback);
+  }
 });
 
 // Get single product by ID
@@ -553,10 +561,87 @@ app.get('/admin', auth, requireRole('admin'), (req, res) => {
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error('Global error handler:', err);
-  res.status(500).json({ error: 'Internal server error' });
+console.error('Global error handler:', err);
+res.status(500).json({ error: 'Internal server error' });
 });
 
+// --- CATEGORY ROUTES ---
+// Get all categories (public)
+app.get('/categories', (req, res) => {
+db.getAllCategories((err, categories) => {
+if (err) {
+console.error('Error fetching categories:', err);
+return res.status(500).json({ error: 'Failed to fetch categories' });
+}
+res.json(categories);
+});
+});
+
+// Get single category (public)
+app.get('/categories/:id', (req, res) => {
+const categoryId = req.params.id;
+db.getCategoryById(categoryId, (err, category) => {
+if (err) {
+if (err.status) return res.status(err.status).json({ error: err.message });
+console.error('Error fetching category:', err);
+return res.status(500).json({ error: 'Failed to fetch category' });
+}
+res.json(category);
+});
+});
+
+// Create new category (admin only)
+app.post('/categories', auth, requireRole('admin'), (req, res) => {
+const { categoryName, categoryNote } = req.body;
+
+if (!categoryName) {
+return res.status(400).json({ error: 'Category name is required' });
+}
+
+db.createCategory({ categoryName, categoryNote }, (err, category) => {
+if (err) {
+if (err.status) return res.status(err.status).json({ error: err.message });
+console.error('Error creating category:', err);
+return res.status(500).json({ error: 'Failed to create category' });
+}
+res.status(201).json(category);
+});
+});
+
+// Update category (admin only)
+app.put('/categories/:id', auth, requireRole('admin'), (req, res) => {
+const categoryId = req.params.id;
+const { categoryName, categoryNote } = req.body;
+
+if (!categoryName) {
+return res.status(400).json({ error: 'Category name is required' });
+}
+
+db.updateCategory(categoryId, { categoryName, categoryNote }, (err, category) => {
+if (err) {
+if (err.status) return res.status(err.status).json({ error: err.message });
+console.error('Error updating category:', err);
+return res.status(500).json({ error: 'Failed to update category' });
+}
+res.json(category);
+});
+});
+
+// Delete category (admin only)
+app.delete('/categories/:id', auth, requireRole('admin'), (req, res) => {
+const categoryId = req.params.id;
+
+db.deleteCategory(categoryId, (err, result) => {
+if (err) {
+if (err.status) return res.status(err.status).json({ error: err.message });
+console.error('Error deleting category:', err);
+return res.status(500).json({ error: 'Failed to delete category' });
+}
+res.json({ message: 'Category deleted successfully' });
+});
+});
+
+// Start the server
 app.listen(PORT, () => {
-  console.log(`API server running at http://localhost:${PORT}`);
-}); 
+console.log(`Server running on http://localhost:${PORT}`);
+});

@@ -21,6 +21,7 @@ const emptyProduct = {
 
 const AdminProductManager = () => {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [form, setForm] = useState(emptyProduct);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -59,8 +60,19 @@ const AdminProductManager = () => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get('http://localhost:4000/categories');
+      setCategories(response.data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setError('ไม่สามารถโหลดรายการหมวดหมู่ได้');
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
     
     // Temporary function to check product with ID 1
     const checkProductRating = async () => {
@@ -112,11 +124,15 @@ const AdminProductManager = () => {
       count: product.rating?.count ?? product.rating_count ?? 0
     };
     
+    // Check if the product's category exists in the categories list
+    const categoryExists = categories.some(cat => cat.categoryName === product.category);
+    const defaultCategory = categoryExists ? product.category : 'อื่น ๆ';
+    
     setForm({
       title: product.title,
       price: product.price,
       description: product.description || '',
-      category: product.category || '',
+      category: product.category ? defaultCategory : 'อื่น ๆ',
       image: product.image || MOCK_IMAGE,
       stock_quantity: product.stock_quantity || 0,
       rating: {
@@ -151,7 +167,7 @@ const AdminProductManager = () => {
       title: form.title,
       price: Number(form.price),
       description: form.description || '',
-      category: form.category || '',
+      category: form.category || 'อื่น ๆ', // Default to 'อื่น ๆ' if no category selected
       image: form.image || MOCK_IMAGE,
       stock_quantity: Number(form.stock_quantity) || 0,
       rating_rate: form.rating?.rate ? Number(form.rating.rate) : 0,
@@ -275,13 +291,19 @@ const AdminProductManager = () => {
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.label}>หมวดหมู่</label>
-                <input
-                  type="text"
+                <select
                   name="category"
                   value={form.category}
                   onChange={handleChange}
                   className={styles.input}
-                />
+                >
+                  <option value="">อื่น ๆ</option>
+                  {categories.map((category) => (
+                    <option key={category.categoryId} value={category.categoryName}>
+                      {category.categoryName}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.label}>ลิงก์รูปภาพ</label>

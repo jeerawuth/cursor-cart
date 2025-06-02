@@ -6,7 +6,9 @@ function App() {
   return (
     <AdminModeProvider>
       <Navbar />
-      <AppRoutes />
+      <div className="main-content">
+        <AppRoutes />
+      </div>
     </AdminModeProvider>
   );
 }

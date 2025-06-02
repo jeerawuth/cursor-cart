@@ -10,6 +10,7 @@ import AdminLogin from '../admin/AdminLogin';
 import AdminDashboard from '../admin/AdminDashboard';
 import AdminProductManager from '../admin/AdminProductManager';
 import AdminUsersManager from '../admin/AdminUsersManager';
+import AdminCategoriesManager from '../admin/AdminCategoriesManager';
 import Orders from '../pages/Orders';
 import AdminOrderManager from '../admin/AdminOrderManager';
 import EditProfile from '../pages/EditProfile';
@@ -46,6 +47,7 @@ const AppRoutes = () => (
     <Route path="/admin/products" element={<AdminRoute><AdminProductManager /></AdminRoute>} />
     <Route path="/admin/orders" element={<AdminRoute><AdminOrderManager /></AdminRoute>} />
     <Route path="/admin/users" element={<AdminRoute><AdminUsersManager /></AdminRoute>} />
+    <Route path="/admin/categories" element={<AdminRoute><AdminCategoriesManager /></AdminRoute>} />
     <Route path="/orders" element={<Orders />} />
     <Route path="/edit-profile" element={<EditProfile />} />
     <Route path="/signup" element={<Signup />} />
