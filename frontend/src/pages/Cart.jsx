@@ -55,8 +55,16 @@ const Cart = () => {
     <div className={styles.cartPage}>
       {popup && <div className={styles.popup}>{popup}</div>}
       <div className={styles.cart}>
-        <h2>ตะกร้าสินค้า</h2>
-        <button onClick={handleClear}>ล้างตะกร้า</button>
+        <div className={styles.cartHeader}>
+          <h2>ตะกร้าสินค้า</h2>
+          <button 
+            onClick={handleClear} 
+            className={styles.clearCartBtn}
+            disabled={cart.length === 0}
+          >
+            ล้างตะกร้า
+          </button>
+        </div>
         {cart.length === 0 ? (
           <p>ไม่มีสินค้าในตะกร้า</p>
         ) : (

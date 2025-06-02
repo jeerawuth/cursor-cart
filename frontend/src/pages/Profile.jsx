@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styles from './Profile.module.css';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ const Profile = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const updateAuthUser = useAuthStore(state => state.setAuth);
 
   const fetchProfile = async () => {
     const token = localStorage.getItem('token');
@@ -59,12 +61,14 @@ const Profile = () => {
 
     console.log('Form data being submitted:', formData);
 
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('กรุณาเข้าสู่ระบบ');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('กรุณาเข้าสู่ระบบ');
-        return;
-      }
 
       const response = await fetch('http://localhost:4000/profile', {
         method: 'PUT',
@@ -96,8 +100,10 @@ const Profile = () => {
       console.log('Updating state with user:', updatedUser);
       
       // Update both user and formData states with the server response
-      setUser(updatedUser);
+      // Also update the auth store to reflect the changes in the Navbar
+      updateAuthUser(updatedUser, token);
       
+      setUser(updatedUser);
       setFormData({
         name: updatedUser.name || '',
         email: updatedUser.email || '',

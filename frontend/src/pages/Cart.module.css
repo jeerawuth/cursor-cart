@@ -1,6 +1,7 @@
 .cart {
   padding: 2rem;
   width: 100vw;
+  min-height: 100vh;
   max-width: 100%;
   margin: 0;
   font-family: Arial, sans-serif;
@@ -28,6 +29,32 @@
 
 .cartPage {
   width: 100%;
+}
+
+.cartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.cartHeader h2 {
+  margin: 0;
+}
+
+.clearCartBtn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.clearCartBtn:hover {
+  background-color: #d32f2f;
 }
 
 .cartList {

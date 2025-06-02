@@ -9,11 +9,11 @@ const ProductSlider = ({ title, products, slidesToShow = 5 }) => {
   const autoSlideInterval = useRef(null);
   const navigate = useNavigate();
 
-  // Auto slide every 5 seconds
+  // Auto slide every 3 seconds
   useEffect(() => {
     autoSlideInterval.current = setInterval(() => {
       nextSlide();
-    }, 5000);
+    }, 3000);
 
     return () => {
       if (autoSlideInterval.current) {
@@ -22,13 +22,15 @@ const ProductSlider = ({ title, products, slidesToShow = 5 }) => {
     };
   }, [currentSlide, products.length]);
 
-  // Calculate slides to show based on screen width
+  // Calculate slides to show based on screen width with better breakpoints
   useEffect(() => {
     const updateSlidesToShow = () => {
-      if (window.innerWidth < 640) return 2;
-      if (window.innerWidth < 1024) return 3;
-      if (window.innerWidth < 1280) return 4;
-      return slidesToShow;
+      const width = window.innerWidth;
+      if (width < 480) return 1;     // Extra small: 1 product
+      if (width < 768) return 2;     // Small: 2 products
+      if (width < 1024) return 3;    // Medium: 3 products
+      if (width < 1440) return 4;    // Large: 4 products
+      return 5;                      // Extra large: 5 products
     };
 
     const handleResize = () => {
@@ -52,7 +54,8 @@ const ProductSlider = ({ title, products, slidesToShow = 5 }) => {
   };
 
   const getTransformValue = () => {
-    return `translateX(-${currentSlide * (100 / slidesToShowState)}%)`;
+    const slidePercentage = 100 / slidesToShowState;
+    return `translateX(calc(-${currentSlide * slidePercentage}% - ${currentSlide * 0.5}rem))`;
   };
 
   const handleProductClick = (productId) => {
@@ -68,61 +71,61 @@ const ProductSlider = ({ title, products, slidesToShow = 5 }) => {
 
   return (
     <div className={styles.sliderContainer}>
-      <div className={styles.sliderHeader}>
-        <h2 className={styles.sliderTitle}>{title}</h2>
+      <div className={styles.sliderWrapper}>
         {showControls && (
-          <div className={styles.sliderControls}>
+          <>
             <button 
-              className={`${styles.controlButton} ${currentSlide === 0 ? styles.disabled : ''}`} 
+              className={`${styles.controlButton} ${styles.prevButton} ${currentSlide === 0 ? styles.disabled : ''}`} 
               onClick={prevSlide}
               aria-label="Previous slide"
             >
               ←
             </button>
             <button 
-              className={`${styles.controlButton} ${currentSlide >= maxSlide ? styles.disabled : ''}`} 
+              className={`${styles.controlButton} ${styles.nextButton} ${currentSlide >= maxSlide ? styles.disabled : ''}`} 
               onClick={nextSlide}
               aria-label="Next slide"
             >
               →
             </button>
-          </div>
+          </>
         )}
-      </div>
-      
-      <div className={styles.sliderTrack} ref={sliderTrackRef}>
-        <div 
-          className={styles.slides} 
-          style={{ 
-            transform: getTransformValue(),
-            width: `${(products.length * 100) / slidesToShowState}%`
-          }}
-        >
-          {products.map((product, index) => (
-            <div 
-              key={product.id} 
-              className={`${styles.slide} ${index === currentSlide ? styles.activeSlide : ''}`}
-              onClick={() => handleProductClick(product.id)}
-              style={{ width: `${100 / slidesToShowState}%` }}
-            >
-              <div className={styles.productCard}>
-                <div className={styles.imageContainer}>
-                  <img 
-                    src={product.image || '/placeholder-product.jpg'} 
-                    alt={product.name || product.title} 
-                    className={styles.productImage}
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = '/placeholder-product.jpg';
-                    }}
-                  />
-                </div>
-                <div className={styles.productName}>
-                  {product.name || product.title}
+        
+        <div className={styles.sliderTrack} ref={sliderTrackRef}>
+          <div 
+            className={styles.slides} 
+            style={{ 
+              transform: getTransformValue(),
+              width: `calc(100% + 1rem)`,
+              '--slides-per-view': slidesToShowState
+            }}
+          >
+            {products.map((product, index) => (
+              <div 
+                key={product.id} 
+                className={`${styles.slide} ${index === currentSlide ? styles.activeSlide : ''}`}
+                onClick={() => handleProductClick(product.id)}
+                style={{ width: `${100 / slidesToShowState}%` }}
+              >
+                <div className={styles.productCard}>
+                  <div className={styles.imageContainer}>
+                    <img 
+                      src={product.image || '/placeholder-product.jpg'} 
+                      alt={product.name || product.title} 
+                      className={styles.productImage}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '/placeholder-product.jpg';
+                      }}
+                    />
+                  </div>
+                  <div className={styles.productName}>
+                    {product.name || product.title}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>
