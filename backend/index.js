@@ -132,6 +132,50 @@ app.put('/profile', auth, (req, res) => {
   });
 });
 
+// PUT /change-password
+app.put('/change-password', auth, (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'กรุณากรอกรหัสผ่านปัจจุบันและรหัสผ่านใหม่' });
+  }
+  
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร' });
+  }
+  
+  // Get user from database
+  db.getUserById(req.user.id, (err, user) => {
+    if (err || !user) {
+      return res.status(500).json({ error: 'ไม่พบผู้ใช้' });
+    }
+    
+    // Verify current password
+    bcrypt.compare(currentPassword, user.password, (err, isMatch) => {
+      if (err || !isMatch) {
+        return res.status(400).json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
+      }
+      
+      // Hash new password
+      bcrypt.hash(newPassword, 10, (err, hashedPassword) => {
+        if (err) {
+          return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน' });
+        }
+        
+        // Update password in database
+        db.updateUser(req.user.id, user.name, user.role, user.address, hashedPassword, (err) => {
+          if (err) {
+            console.error('Error updating password:', err);
+            return res.status(500).json({ error: 'ไม่สามารถเปลี่ยนรหัสผ่านได้' });
+          }
+          
+          res.json({ success: true, message: 'เปลี่ยนรหัสผ่านสำเร็จ' });
+        });
+      });
+    });
+  });
+});
+
 // GET /products (ดึงจาก sqlite ถ้าไม่มีรูปให้ใช้ mockup)
 const axios = require('axios');
 const MOCK_IMAGE = 'https://via.placeholder.com/200x200?text=No+Image';

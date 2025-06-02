@@ -199,6 +199,93 @@
   text-align: right;
 }
 
+/* Password Change Modal */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.modal h3 {
+  margin-top: 0;
+  color: #2c3e50;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 1.5rem;
+}
+
+/* Make sure the form inputs look good in the modal */
+.modal .formGroup {
+  margin-bottom: 1.2rem;
+}
+
+.modal .formInput {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+.modal .buttonGroup {
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* Make the modal responsive */
+@media (max-width: 600px) {
+  .modal {
+    width: 90%;
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+}
+
+/* Add some animation for the modal */
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal {
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+/* Style for the close button */
+.modal .closeButton {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.modal .closeButton:hover {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
 .editButton {
   background-color: #4a90e2;
   color: white;

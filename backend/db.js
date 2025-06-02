@@ -93,11 +93,28 @@ module.exports = {
   getUserById(id, cb) {
     db.get('SELECT * FROM users WHERE id = ?', [id], cb);
   },
-  updateUser(id, name, role, address, cb) {
-    db.run('UPDATE users SET name = ?, role = ?, address = ? WHERE id = ?', [name, role, address, id], function(err) {
-      if (err) return cb(err);
-      cb(null, { id, name, role, address });
-    });
+  updateUser(id, name, role, address, password, cb) {
+    // If password is provided, update it along with other fields
+    if (typeof password === 'function') {
+      // Handle case where password is not provided (backward compatibility)
+      cb = password;
+      db.run('UPDATE users SET name = ?, role = ?, address = ? WHERE id = ?', 
+        [name, role, address, id], 
+        function(err) {
+          if (err) return cb(err);
+          cb(null, { id, name, role, address });
+        }
+      );
+    } else {
+      // Update including password
+      db.run('UPDATE users SET name = ?, role = ?, address = ?, password = ? WHERE id = ?', 
+        [name, role, address, password, id], 
+        function(err) {
+          if (err) return cb(err);
+          cb(null, { id, name, role, address });
+        }
+      );
+    }
   },
   getAllProducts(cb) {
     db.all('SELECT * FROM products', cb);

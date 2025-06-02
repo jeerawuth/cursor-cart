@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styles from './Profile.module.css';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import axios from 'axios';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -12,6 +13,14 @@ const Profile = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
   const updateAuthUser = useAuthStore(state => state.setAuth);
 
   const fetchProfile = async () => {
@@ -126,6 +135,55 @@ const Profile = () => {
     setIsEditing(true);
   };
 
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('รหัสผ่านใหม่ไม่ตรงกัน');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        'http://localhost:4000/change-password',
+        {
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      setPasswordSuccess('เปลี่ยนรหัสผ่านสำเร็จ');
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      
+      // Close modal after 2 seconds
+      setTimeout(() => {
+        setShowPasswordModal(false);
+        setPasswordSuccess('');
+      }, 2000);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      setPasswordError(error.response?.data?.error || 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน');
+    }
+  };
+
   if (error) return (
     <div className={styles.adminDashboard}>
       <div className={styles.header}>
@@ -144,6 +202,73 @@ const Profile = () => {
         <h2 className={styles.sectionTitle}>ข้อมูลส่วนตัว</h2>
         <div>กำลังโหลดข้อมูลผู้ใช้...</div>
       </div>
+      
+      {/* Change Password Modal */}
+      {showPasswordModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3>เปลี่ยนรหัสผ่าน</h3>
+            <form onSubmit={handlePasswordSubmit}>
+              <div className={styles.formGroup}>
+                <label>รหัสผ่านปัจจุบัน</label>
+                <input
+                  type="password"
+                  name="currentPassword"
+                  value={passwordData.currentPassword}
+                  onChange={handlePasswordChange}
+                  className={styles.formInput}
+                  required
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>รหัสผ่านใหม่</label>
+                <input
+                  type="password"
+                  name="newPassword"
+                  value={passwordData.newPassword}
+                  onChange={handlePasswordChange}
+                  className={styles.formInput}
+                  required
+                  minLength="6"
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>ยืนยันรหัสผ่านใหม่</label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={passwordData.confirmPassword}
+                  onChange={handlePasswordChange}
+                  className={styles.formInput}
+                  required
+                  minLength="6"
+                />
+              </div>
+              
+              {passwordError && <div className={styles.error} style={{ marginBottom: '1rem' }}>{passwordError}</div>}
+              {passwordSuccess && <div className={styles.success} style={{ marginBottom: '1rem' }}>{passwordSuccess}</div>}
+              
+              <div className={styles.buttonGroup} style={{ marginTop: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className={styles.secondaryButton}
+                  disabled={!!passwordSuccess}
+                >
+                  ปิด
+                </button>
+                <button
+                  type="submit"
+                  className={styles.primaryButton}
+                  disabled={!!passwordSuccess}
+                >
+                  {passwordSuccess ? 'สำเร็จ' : 'บันทึก'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -204,7 +329,7 @@ const Profile = () => {
                   disabled={isSubmitting}
                   className={styles.primaryButton}
                 >
-                  {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
+                  {isSubmitting ? 'กำลังบันทึก...' : 'บันทึก'}
                 </button>
               </div>
               {submitError && <div className={styles.error}>{submitError}</div>}
@@ -224,16 +349,91 @@ const Profile = () => {
                 <span className={styles.infoLabel}>ที่อยู่:</span>
                 <span className={styles.infoValue}>{user.address || 'ยังไม่ได้ระบุที่อยู่'}</span>
               </div>
-              <button 
-                onClick={() => setIsEditing(true)}
-                className={styles.primaryButton}
-              >
-                แก้ไขโปรไฟล์
-              </button>
+              <div className={styles.buttonGroup} style={{ gap: '10px' }}>
+                <button onClick={handleEditClick} className={styles.primaryButton}>
+                  แก้ไขโปรไฟล์
+                </button>
+                <button 
+                  onClick={() => setShowPasswordModal(true)}
+                  className={styles.secondaryButton}
+                >
+                  เปลี่ยนรหัสผ่าน
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
+      
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <button 
+              className={styles.closeButton}
+              onClick={() => setShowPasswordModal(false)}
+              aria-label="ปิด"
+            >
+              &times;
+            </button>
+            <h3>เปลี่ยนรหัสผ่าน</h3>
+            {passwordError && <div className={styles.error}>{passwordError}</div>}
+            {passwordSuccess && <div className={styles.success}>{passwordSuccess}</div>}
+            <form onSubmit={handlePasswordSubmit}>
+              <div className={styles.formGroup}>
+                <label htmlFor="currentPassword">รหัสผ่านปัจจุบัน</label>
+                <input
+                  type="password"
+                  id="currentPassword"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                  className={styles.formInput}
+                  required
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="newPassword">รหัสผ่านใหม่</label>
+                <input
+                  type="password"
+                  id="newPassword"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                  className={styles.formInput}
+                  minLength="6"
+                  required
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="confirmPassword">ยืนยันรหัสผ่านใหม่</label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                  className={styles.formInput}
+                  minLength="6"
+                  required
+                />
+              </div>
+              <div className={styles.buttonGroup}>
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className={styles.secondaryButton}
+                >
+                  ยกเลิก
+                </button>
+                <button 
+                  type="submit" 
+                  className={styles.primaryButton}
+                >
+                  บันทึก
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
