@@ -7,7 +7,7 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState('customer');
+  // Role is always set to 'customer' for new registrations
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -39,7 +39,7 @@ const Signup = () => {
       const res = await fetch('http://localhost:4000/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name, role })
+        body: JSON.stringify({ email, password, name, role: 'customer' })
       });
       let data;
       try {
@@ -134,20 +134,7 @@ const Signup = () => {
             />
           </div>
           
-          <div className={`${styles.formGroup} ${styles.roleSelector}`}>
-            <label htmlFor="role">บทบาท</label>
-            <select
-              id="role"
-              className={styles.selectInput}
-              value={role}
-              onChange={e => setRole(e.target.value)}
-              required
-            >
-              <option value="customer">ลูกค้า</option>
-              <option value="user">ผู้ใช้</option>
-              <option value="admin">ผู้ดูแลระบบ</option>
-            </select>
-          </div>
+          {/* Role is automatically set to 'customer' */}
           
           <div className={styles.buttonGroup}>
             <button
