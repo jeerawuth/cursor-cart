@@ -813,11 +813,35 @@ module.exports = {
               
               // Update the product's average rating
               console.log('Updating product rating...');
-              db.get('SELECT AVG(rating) as avg_rating, COUNT(*) as review_count FROM reviews WHERE product_id = ?', 
-                [product_id], 
-                (err, row) => {
+              db.get(`
+                SELECT 
+                  AVG(rating) as avg_rating, 
+                  COUNT(*) as review_count 
+                FROM reviews 
+                WHERE product_id = ?
+              `, [product_id], (err, row) => {
+                if (err) {
+                  console.error('⚠️ Error calculating average rating:', err);
+                  // Still return success since the review was created
+                  return cb(null, { 
+                    id: reviewId, 
+                    warning: 'Review saved but could not update product rating' 
+                  });
+                }
+                
+                console.log(`Calculated average rating: ${row.avg_rating} from ${row.review_count} reviews`);
+                
+                // Update the product's rating using the correct columns
+                const avgRating = row.avg_rating ? parseFloat(row.avg_rating.toFixed(2)) : 0;
+                
+                db.run(`
+                  UPDATE products 
+                  SET rating_rate = ?, 
+                      rating_count = ? 
+                  WHERE id = ?
+                `, [avgRating, row.review_count, product_id], (err) => {
                   if (err) {
-                    console.error('⚠️ Error calculating average rating:', err);
+                    console.error('⚠️ Error updating product rating:', err);
                     // Still return success since the review was created
                     return cb(null, { 
                       id: reviewId, 
@@ -825,27 +849,11 @@ module.exports = {
                     });
                   }
                   
-                  console.log(`Calculated average rating: ${row.avg_rating} from ${row.review_count} reviews`);
-                  
-                  db.run('UPDATE products SET rating = ? WHERE id = ?', 
-                    [row.avg_rating, product_id], 
-                    (err) => {
-                      if (err) {
-                        console.error('⚠️ Error updating product rating:', err);
-                        // Still return success since the review was created
-                        return cb(null, { 
-                          id: reviewId, 
-                          warning: 'Review saved but could not update product rating' 
-                        });
-                      }
-                      
-                      console.log(`✅ Updated product ${product_id} rating to ${row.avg_rating}`);
-                      console.log('=== Review process completed successfully ===\n');
-                      cb(null, { id: reviewId });
-                    }
-                  );
-                }
-              );
+                  console.log(`✅ Updated product ${product_id} rating to ${avgRating} (${row.review_count} reviews)`);
+                  console.log('=== Review process completed successfully ===\n');
+                  cb(null, { id: reviewId });
+                });
+              });
             }
           );
         }
