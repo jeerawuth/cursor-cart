@@ -1,16 +1,83 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const util = require('util');
 
 const dbPath = path.resolve(__dirname, 'database.sqlite');
 console.log('DB path:', dbPath);
 
-const db = new sqlite3.Database(dbPath, (err) => {
+// Create database connection
+const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
   if (err) {
     console.error('Error opening database:', err.message);
-  } else {
-    console.log('Connected to SQLite database.');
+    process.exit(1);
   }
+  console.log('Connected to SQLite database');
+  
+  // Enable foreign key constraints
+  db.run("PRAGMA foreign_keys = ON", (err) => {
+    if (err) {
+      console.error('Error enabling foreign keys:', err.message);
+    } else {
+      console.log('Foreign key constraints enabled');
+    }
+  });
 });
+
+// Add error handler
+db.on('error', (err) => {
+  console.error('Database error:', err);
+});
+
+// Promisify common methods
+const dbMethods = {
+  run: function(sql, params = []) {
+    return new Promise((resolve, reject) => {
+      db.run(sql, params, function(err) {
+        if (err) return reject(err);
+        resolve({ lastID: this.lastID, changes: this.changes });
+      });
+    });
+  },
+  
+  get: function(sql, params = []) {
+    return new Promise((resolve, reject) => {
+      db.get(sql, params, (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+  },
+  
+  all: function(sql, params = []) {
+    return new Promise((resolve, reject) => {
+      db.all(sql, params, (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows);
+      });
+    });
+  }
+};
+
+// Export the database connection with promisified methods
+const dbExports = {
+  // Original SQLite3 database methods
+  ...db,
+  
+  // Custom promisified methods
+  run: dbMethods.run,
+  get: dbMethods.get,
+  all: dbMethods.all,
+  
+  // Keep all other methods from the original db object
+  ...Object.getOwnPropertyNames(db)
+    .filter(key => typeof db[key] === 'function' && !['run', 'get', 'all'].includes(key))
+    .reduce((acc, key) => ({
+      ...acc,
+      [key]: db[key]
+    }), {})
+};
+
+module.exports = dbExports;
 
 // สร้างตาราง users ถ้ายังไม่มี
 const userTableSql = `CREATE TABLE IF NOT EXISTS users (

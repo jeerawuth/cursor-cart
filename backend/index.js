@@ -622,6 +622,160 @@ app.get('/orders', auth, (req, res) => {
   });
 });
 
+// DELETE /api/reviews/:id - Delete a review (admin only)
+app.delete('/api/reviews/:id', auth, requireRole('admin'), async (req, res) => {
+  console.log('=== DELETE /api/reviews/:id ===');
+  console.log('Review ID:', req.params.id);
+  console.log('User making request:', req.user);
+  
+  const reviewId = req.params.id;
+  const db = require('./db2');
+  
+  if (!reviewId) {
+    console.log('No review ID provided');
+    return res.status(400).json({ 
+      success: false,
+      error: 'ต้องระบุ ID ของรีวิว' 
+    });
+  }
+
+  // Get the review first to get the product_id
+  let review;
+  try {
+    review = await db.get('SELECT * FROM reviews WHERE id = ?', [reviewId]);
+    
+    if (!review) {
+      console.log('Review not found with ID:', reviewId);
+      return res.status(404).json({ 
+        success: false,
+        error: 'ไม่พบรีวิวที่ต้องการลบ' 
+      });
+    }
+    
+    console.log('Found review:', JSON.stringify(review, null, 2));
+  } catch (error) {
+    console.error('Error finding review:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'เกิดข้อผิดพลาดในการค้นหาข้อมูลรีวิว',
+      details: error.message
+    });
+  }
+  
+  try {
+    // Start a database transaction
+    await db.run('BEGIN TRANSACTION');
+    
+    console.log('Deleting review...');
+    
+    // Delete the review
+    await db.run('DELETE FROM reviews WHERE id = ?', [reviewId]);
+    console.log(`Review ${reviewId} deleted successfully`);
+    
+    console.log('Review deleted, now updating product rating...');
+    console.log('Product ID to update:', review.product_id);
+    
+    // Update the product's average rating
+    const result = await db.get(
+      'SELECT AVG(rating) as avg_rating, COUNT(*) as rating_count FROM reviews WHERE product_id = ?',
+      [review.product_id]
+    );
+
+    console.log('New rating calculation result:', JSON.stringify(result, null, 2));
+    const newAvgRating = result && result.avg_rating !== null ? result.avg_rating : 0;
+    const ratingCount = result && result.rating_count !== null ? result.rating_count : 0;
+
+    console.log('Updating product with new rating:', JSON.stringify({ 
+      productId: review.product_id,
+      newAvgRating, 
+      ratingCount 
+    }, null, 2));
+
+    // Update the product with new average rating and rating count
+    await db.run(
+      'UPDATE products SET rating_rate = ROUND(?, 2), rating_count = ? WHERE id = ?',
+      [newAvgRating, ratingCount, review.product_id]
+    );
+
+    // Commit the transaction
+    await db.run('COMMIT');
+    
+    console.log('Product rating updated successfully');
+    return res.json({
+      success: true,
+      message: 'ลบรีวิวสำเร็จ',
+      data: {
+        reviewId,
+        productId: review.product_id,
+        newRating: newAvgRating,
+        newReviewCount: ratingCount
+      }
+    });
+    
+  } catch (error) {
+    // Try to rollback if there was an error
+    try {
+      await db.run('ROLLBACK');
+    } catch (rollbackError) {
+      console.error('Error rolling back transaction:', rollbackError);
+    }
+    
+    console.error('Error in review deletion transaction:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'เกิดข้อผิดพลาดในการลบรีวิว',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// GET /api/reviews - View all reviews (for debugging)
+app.get('/api/reviews', (req, res) => {
+  console.log('=== START: Fetching all reviews ===');
+  
+  // Query to get all reviews with user and product information
+  const sql = `
+    SELECT 
+      r.id, 
+      r.order_id,
+      r.rating, 
+      r.comment, 
+      r.created_at, 
+      u.name as user_name,
+      u.id as user_id,
+      p.title as product_name,
+      p.id as product_id
+    FROM reviews r
+    LEFT JOIN users u ON r.user_id = u.id
+    LEFT JOIN products p ON r.product_id = p.id
+    ORDER BY r.created_at DESC
+  `;
+  
+  console.log('Executing SQL query for reviews');
+  
+  // Use db.db.all to access the database connection directly
+  db.db.all(sql, [], (err, reviews) => {
+    if (err) {
+      console.error('Error executing reviews query:', {
+        message: err.message,
+        code: err.code,
+        stack: err.stack,
+        sql: sql
+      });
+      return res.status(500).json({
+        error: 'Failed to fetch reviews',
+        details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+        code: err.code,
+        sqlError: true
+      });
+    }
+    
+    console.log(`Successfully fetched ${reviews?.length || 0} reviews`);
+    res.json(reviews || []);
+  });
+});
+
 // GET /admin/orders - ดูคำสั่งซื้อทั้งหมด (admin เท่านั้น)
 // Get all users (admin only)
 app.get('/admin/users', auth, requireRole('admin'), (req, res) => {
@@ -830,6 +984,134 @@ app.put('/admin/orders/:id', auth, requireRole('admin'), (req, res) => {
 // ตัวอย่าง route /admin (อนุญาตเฉพาะ admin)
 app.get('/admin', auth, requireRole('admin'), (req, res) => {
   res.json({ message: 'Welcome admin!', user: req.user });
+});
+
+// Test endpoint to verify JWT is working
+app.get('/test-auth', auth, (req, res) => {
+  res.json({ 
+    message: 'You are authenticated!',
+    user: req.user
+  });
+});
+
+// Test endpoint to verify database connection and permissions
+app.get('/test-db', (req, res) => {
+  console.log('Testing database connection and permissions...');
+  
+  // Simple test to check if the endpoint is reachable
+  res.json({
+    success: true,
+    message: 'Test endpoint is working',
+    tests: [
+      { name: 'endpoint_reachable', status: 'passed' },
+      { name: 'database_connection', status: 'pending' },
+      { name: 'reviews_table', status: 'pending' }
+    ]
+  });
+});
+
+// Simple test endpoint for database connection
+app.get('/test-db-connection', async (req, res) => {
+  console.log('Testing database connection...');
+  
+  try {
+    // Use the new database connection
+    const db = require('./db2');
+    
+    if (!db) {
+      console.error('Database instance is not available');
+      return res.status(500).json({
+        success: false,
+        error: 'Database instance is not available'
+      });
+    }
+    
+    try {
+      console.log('Executing test query...');
+      const row = await db.get('SELECT 1 as test');
+      console.log('Database connection test passed:', row);
+      
+      res.json({
+        success: true,
+        message: 'Database connection is working',
+        data: row
+      });
+    } catch (dbError) {
+      console.error('Database connection test failed:', dbError);
+      return res.status(500).json({
+        success: false,
+        error: 'Database query failed',
+        details: dbError.message,
+        stack: process.env.NODE_ENV === 'development' ? dbError.stack : undefined
+      });
+    }
+  } catch (error) {
+    console.error('Error in test-db-connection:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to test database connection',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Test endpoint for reviews table
+app.get('/test-reviews-table', async (req, res) => {
+  console.log('Testing reviews table...');
+  
+  try {
+    const db = require('./db2');
+    
+    try {
+      // First check if table exists
+      const table = await db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='reviews'");
+      
+      if (!table) {
+        console.log('Reviews table does not exist');
+        return res.status(404).json({
+          success: false,
+          error: 'Reviews table does not exist'
+        });
+      }
+      
+      console.log('Reviews table exists, checking data...');
+      
+      // If table exists, try to query it
+      const rows = await db.all('SELECT * FROM reviews LIMIT 5');
+      console.log(`Found ${rows.length} reviews`);
+      
+      // Get table structure
+      const columns = await db.all('PRAGMA table_info(reviews)');
+      console.log('Table structure:', columns);
+      
+      res.json({
+        success: true,
+        message: 'Reviews table is accessible',
+        tableExists: true,
+        reviewCount: rows.length,
+        columns: columns.map(c => c.name),
+        sampleData: rows
+      });
+      
+    } catch (dbError) {
+      console.error('Database operation failed:', dbError);
+      return res.status(500).json({
+        success: false,
+        error: 'Database operation failed',
+        details: dbError.message,
+        stack: process.env.NODE_ENV === 'development' ? dbError.stack : undefined
+      });
+    }
+  } catch (error) {
+    console.error('Error in test-reviews-table:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to test reviews table',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
 });
 
 // Error handler

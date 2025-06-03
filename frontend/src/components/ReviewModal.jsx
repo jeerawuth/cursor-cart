@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useAuthStore } from '../store/authStore';
 import styles from '../pages/Profile.module.css';
 
 const ReviewModal = ({ isOpen, onClose, orderId, product, onSubmit }) => {
@@ -7,6 +8,10 @@ const ReviewModal = ({ isOpen, onClose, orderId, product, onSubmit }) => {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  
+  // Get token and user from auth store using a stable selector
+  const token = useAuthStore(state => state.token);
+  const user = useAuthStore(state => state.user);
 
   useEffect(() => {
     if (!isOpen) {
@@ -25,29 +30,23 @@ const ReviewModal = ({ isOpen, onClose, orderId, product, onSubmit }) => {
       return;
     }
 
+    if (!token || !user) {
+      setError('กรุณาเข้าสู่ระบบก่อนเขียนรีวิว');
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
-      // Decode the token to get user ID
-      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-      console.log('Current user from token:', {
-        id: tokenPayload.id,
-        email: tokenPayload.email,
-        role: tokenPayload.role
-      });
-      
-      // Make sure we're using the correct product ID
       const productId = product.product_id || product.id;
       
-      console.log('Token from localStorage:', token);
       console.log('Submitting review with data:', {
         order_id: orderId,
-        product_id: productId, // Use the correct product ID
+        product_id: productId,
         rating,
         comment: comment.trim() || null,
-        user_id: tokenPayload.id // Add user ID to the logged data
+        user_id: user.id
       });
       
       const response = await axios.post(
@@ -66,10 +65,8 @@ const ReviewModal = ({ isOpen, onClose, orderId, product, onSubmit }) => {
         }
       );
       
-      // Call the parent's onSubmit handler and wait for it to complete
       const result = await onSubmit(response.data);
       
-      // If the parent handler returns an error, show it
       if (result && !result.success) {
         throw new Error(result.error || 'เกิดข้อผิดพลาดในการอัปเดตข้อมูลรีวิว');
       }
@@ -80,12 +77,13 @@ const ReviewModal = ({ isOpen, onClose, orderId, product, onSubmit }) => {
         error: err,
         response: err.response?.data,
         status: err.response?.status,
-        statusText: err.response?.statusText,
-        headers: err.response?.headers
+        statusText: err.response?.statusText
       });
       
       let errorMessage = 'เกิดข้อผิดพลาดในการส่งรีวิว';
-      if (err.response?.status === 403) {
+      if (err.response?.status === 401) {
+        errorMessage = 'กรุณาเข้าสู่ระบบใหม่';
+      } else if (err.response?.status === 403) {
         errorMessage = 'คุณไม่มีสิทธิ์รีวิวสินค้านี้';
       } else if (err.response?.data?.error) {
         errorMessage = err.response.data.error;
