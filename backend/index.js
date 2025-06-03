@@ -4,8 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./db');
 const app = express();
-const PORT = 4000;
-const JWT_SECRET = 'your_jwt_secret';
+const PORT = process.env.PORT;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Enable CORS for all routes
 app.use((req, res, next) => {
