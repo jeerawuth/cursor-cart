@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { fetchProducts } from '../api/products';
+import OrderDetails from '../components/OrderDetails';
 import styles from './Orders.module.css';
 
 // สถานะคำสั่งซื้อ
@@ -43,9 +44,46 @@ export default function Orders() {
   const [activeTab, setActiveTab] = useState(ORDER_STATUS.ALL);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const navigate = useNavigate();
   const { user, token, isLoading: isAuthLoading } = useAuthStore();
 
+  // Function to fetch orders
+  const fetchOrders = async () => {
+    try {
+      const response = await fetch('http://localhost:4000/orders', {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('ไม่สามารถดึงข้อมูลคำสั่งซื้อได้');
+      }
+
+      const ordersData = await response.json();
+      const validOrders = Array.isArray(ordersData) ? ordersData : [];
+      setOrders(validOrders);
+      
+      // Update filtered orders based on active tab
+      if (activeTab === ORDER_STATUS.ALL) {
+        setFilteredOrders(validOrders);
+      } else {
+        setFilteredOrders(validOrders.filter(order => order.status === activeTab));
+      }
+      
+      return validOrders;
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setError(err.message || 'เกิดข้อผิดพลาดในการโหลดคำสั่งซื้อ');
+      setOrders([]);
+      setFilteredOrders([]);
+      throw err; // Re-throw the error to be caught by the caller
+    }
+  };
+
+  // Initial data fetch
   useEffect(() => {
     // Redirect to login if not authenticated
     if (!isAuthLoading && !token) {
@@ -53,42 +91,28 @@ export default function Orders() {
       return;
     }
 
-    const fetchData = async () => {
+    const fetchInitialData = async () => {
       try {
         setIsLoading(true);
         
         // Fetch products and orders in parallel
-        const [productsData, ordersResponse] = await Promise.all([
+        const [productsData] = await Promise.all([
           fetchProducts(),
-          fetch('http://localhost:4000/orders', {
-            headers: { 
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          })
+          fetchOrders() // This will update orders and filteredOrders states
         ]);
 
-        if (!ordersResponse.ok) {
-          throw new Error('ไม่สามารถดึงข้อมูลคำสั่งซื้อได้');
-        }
-
-        const ordersData = await ordersResponse.json();
-        const validOrders = Array.isArray(ordersData) ? ordersData : [];
         setProducts(productsData);
-        setOrders(validOrders);
-        setFilteredOrders(validOrders); // เริ่มต้นแสดงทั้งหมด
         setError('');
       } catch (err) {
-        console.error('Error fetching orders:', err);
-        setError(err.message || 'เกิดข้อผิดพลาดในการโหลดคำสั่งซื้อ');
-        setOrders([]);
+        console.error('Error fetching initial data:', err);
+        setError(err.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       } finally {
         setIsLoading(false);
       }
     };
 
     if (token) {
-      fetchData();
+      fetchInitialData();
     }
   }, [token, isAuthLoading, navigate]);
 
@@ -173,6 +197,43 @@ export default function Orders() {
     );
   }
 
+  // Handle back from order details
+  const handleBackFromDetails = () => {
+    setSelectedOrder(null);
+  };
+
+  // Handle review submission
+  const handleReviewSubmit = async () => {
+    try {
+      await fetchOrders();
+      return { success: true };
+    } catch (error) {
+      console.error('Error refreshing orders after review:', error);
+      return { 
+        success: false, 
+        error: 'ไม่สามารถรีเฟรชข้อมูลคำสั่งซื้อได้' 
+      };
+    }
+  };
+
+  // If an order is selected, show its details
+  if (selectedOrder) {
+    return (
+      <div className={styles.ordersContainer}>
+        <button 
+          onClick={handleBackFromDetails}
+          className={styles.backButton}
+        >
+          &larr; กลับไปยังรายการคำสั่งซื้อ
+        </button>
+        <OrderDetails 
+          order={selectedOrder} 
+          onReviewSubmit={handleReviewSubmit}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.ordersContainer}>
       <h2 className={styles.title}>คำสั่งซื้อของฉัน</h2>
@@ -186,7 +247,12 @@ export default function Orders() {
       ) : (
         <div className={styles.ordersList}>
           {filteredOrders.map(order => (
-            <div key={order.id} className={styles.orderCard}>
+            <div 
+              key={order.id} 
+              className={styles.orderCard}
+              onClick={() => setSelectedOrder(order)}
+              style={{ cursor: 'pointer' }}
+            >
               <div className={styles.orderHeader}>
                 <span className={styles.orderId}>#ORD-{order.id}</span>
                 <span className={`${styles.statusBadge} ${styles[order.status]}`}>
@@ -244,11 +310,22 @@ export default function Orders() {
                 </ul>
               </div>
               
-              <div className={styles.orderTotal}>
-                <span>รวมทั้งหมด:</span>
-                <span className={styles.totalAmount}>
-                  {order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)} บาท
-                </span>
+              <div className={styles.orderFooter}>
+                <div className={styles.orderTotal}>
+                  <span>รวมทั้งหมด:</span>
+                  <span className={styles.totalAmount}>
+                    {order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)} บาท
+                  </span>
+                </div>
+                <button 
+                  className={styles.viewDetailsButton}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedOrder(order);
+                  }}
+                >
+                  ดูรายละเอียด
+                </button>
               </div>
             </div>
           ))}

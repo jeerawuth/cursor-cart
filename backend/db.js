@@ -45,6 +45,26 @@ const orderTableSql = `CREATE TABLE IF NOT EXISTS orders (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(user_id) REFERENCES users(id)
 )`;
+
+// Create reviews table
+const reviewTableSql = `CREATE TABLE IF NOT EXISTS reviews (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id INTEGER NOT NULL,
+  product_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(order_id) REFERENCES orders(id),
+  FOREIGN KEY(product_id) REFERENCES products(id),
+  FOREIGN KEY(user_id) REFERENCES users(id),
+  UNIQUE(order_id, product_id, user_id)  -- Prevent duplicate reviews
+)`;
+
+db.run(reviewTableSql, (err) => {
+  if (err) console.error('Error creating reviews table:', err.message);
+  else console.log('Reviews table created or already exists');
+});
 db.run(orderTableSql, (err) => {
   if (err) console.error('Error creating orders table:', err.message);
 });
@@ -644,16 +664,227 @@ module.exports = {
         
         // If no products are using this category, delete it
         db.run('DELETE FROM categories WHERE categoryId = ?', [categoryId], function(err) {
-          if (err) {
-            console.error('Error deleting category:', err);
-            return cb(err);
-          }
-          if (this.changes === 0) {
-            return cb({ status: 404, message: 'ไม่พบหมวดหมู่' });
-          }
-          cb(null, { success: true });
+          if (err) return cb(err);
+          
+          // Reset category_id to NULL for products in this category
+          db.run('UPDATE products SET category_id = NULL WHERE category_id = ?', [categoryId], function(err) {
+            if (err) console.error('Error resetting category for products:', err);
+            cb(null, { success: true });
+          });
         });
       });
     });
+  },
+
+  // --- REVIEW SYSTEM ---
+  // Add a review for a product in an order
+  addReview(review, cb) {
+    const { order_id, product_id, user_id, rating, comment } = review;
+    
+    console.log('=== Starting addReview ===');
+    console.log('Review data:', { order_id, product_id, user_id, rating, comment });
+    
+    // First, verify the product exists
+    db.get('SELECT id, title FROM products WHERE id = ?', [product_id], (err, product) => {
+      if (err) {
+        console.error('❌ Error checking product existence:', err);
+        return cb(err);
+      }
+      
+      if (!product) {
+        const error = new Error(`Product ${product_id} not found`);
+        console.error('❌', error.message);
+        return cb(error);
+      }
+      
+      console.log(`✅ Product found: ${product.title} (ID: ${product.id})`);
+      
+      // Check if review already exists
+      db.get(
+        'SELECT id FROM reviews WHERE order_id = ? AND product_id = ? AND user_id = ?',
+        [order_id, product_id, user_id],
+        (err, existingReview) => {
+          if (err) {
+            console.error('❌ Error checking for existing review:', err);
+            return cb(err);
+          }
+          
+          if (existingReview) {
+            const error = new Error('คุณได้เขียนรีวิวสินค้านี้ไปแล้ว');
+            console.error('❌', error.message);
+            return cb(error);
+          }
+          
+          console.log('✅ No duplicate review found, proceeding with insert...');
+          
+          // Insert the review
+          const sql = `
+            INSERT INTO reviews (
+              order_id, 
+              product_id, 
+              user_id, 
+              rating, 
+              comment, 
+              created_at
+            ) VALUES (?, ?, ?, ?, ?, datetime('now'))
+          `;
+          
+          console.log('Executing SQL:', sql);
+          console.log('With values:', { order_id, product_id, user_id, rating, comment });
+          
+          db.run(
+            sql,
+            [order_id, product_id, user_id, rating, comment],
+            function(err) {
+              if (err) {
+                console.error('❌ Error inserting review:', err);
+                return cb(err);
+              }
+              
+              const reviewId = this.lastID;
+              console.log(`✅ Review ${reviewId} created successfully`);
+              
+              // Update the product's average rating
+              console.log('Updating product rating...');
+              db.get('SELECT AVG(rating) as avg_rating, COUNT(*) as review_count FROM reviews WHERE product_id = ?', 
+                [product_id], 
+                (err, row) => {
+                  if (err) {
+                    console.error('⚠️ Error calculating average rating:', err);
+                    // Still return success since the review was created
+                    return cb(null, { 
+                      id: reviewId, 
+                      warning: 'Review saved but could not update product rating' 
+                    });
+                  }
+                  
+                  console.log(`Calculated average rating: ${row.avg_rating} from ${row.review_count} reviews`);
+                  
+                  db.run('UPDATE products SET rating = ? WHERE id = ?', 
+                    [row.avg_rating, product_id], 
+                    (err) => {
+                      if (err) {
+                        console.error('⚠️ Error updating product rating:', err);
+                        // Still return success since the review was created
+                        return cb(null, { 
+                          id: reviewId, 
+                          warning: 'Review saved but could not update product rating' 
+                        });
+                      }
+                      
+                      console.log(`✅ Updated product ${product_id} rating to ${row.avg_rating}`);
+                      console.log('=== Review process completed successfully ===\n');
+                      cb(null, { id: reviewId });
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+    });
+  },
+
+  // Get reviews for a product
+  getProductReviews(productId, cb) {
+    db.all(
+      `SELECT r.*, u.name as user_name 
+       FROM reviews r 
+       JOIN users u ON r.user_id = u.id 
+       WHERE r.product_id = ? 
+       ORDER BY r.created_at DESC`,
+      [productId],
+      cb
+    );
+  },
+
+  // Get user's reviews for an order
+  getOrderReviewsByUser(orderId, userId, cb) {
+    db.all(
+      'SELECT * FROM reviews WHERE order_id = ? AND user_id = ?',
+      [orderId, userId],
+      cb
+    );
+  },
+
+  // Check if user can review a product in an order
+  canUserReviewProduct(orderId, productId, userId, cb) {
+    console.log(`\n=== Review Permission Check Start ===`);
+    console.log(`Order ID: ${orderId}, Product ID: ${productId}, User ID: ${userId}`);
+    
+    // First, check if the order exists and get its status
+    db.get(
+      `SELECT * FROM orders WHERE id = ?`,
+      [orderId],
+      (err, order) => {
+        if (err) {
+          console.error('Error fetching order:', err);
+          return cb(err);
+        }
+        
+        if (!order) {
+          console.log(`❌ Order ${orderId} not found`);
+          return cb(null, false);
+        }
+        
+        console.log(`ℹ️ Order ${orderId} found. Status: ${order.status}`);
+        
+        // Check if order is delivered
+        if (order.status !== 'delivered') {
+          console.log(`❌ Order status is '${order.status}', not 'delivered'`);
+          return cb(null, false);
+        }
+        
+        // Check if the product is in the order
+        db.get(
+          `SELECT * FROM order_items WHERE order_id = ? AND product_id = ?`,
+          [orderId, productId],
+          (err, orderItem) => {
+            if (err) {
+              console.error('Error checking order items:', err);
+              return cb(err);
+            }
+            
+            if (!orderItem) {
+              console.log(`❌ Product ${productId} not found in order ${orderId}`);
+              return cb(null, false);
+            }
+            
+            console.log(`✅ Product ${productId} is in order ${orderId}`);
+            
+            // Check if user owns the order
+            if (order.user_id !== userId) {
+              console.log(`❌ User ${userId} does not own order ${orderId}`);
+              return cb(null, false);
+            }
+            
+            console.log(`✅ User ${userId} owns order ${orderId}`);
+            
+            // Check if review already exists
+            db.get(
+              'SELECT * FROM reviews WHERE order_id = ? AND product_id = ? AND user_id = ?',
+              [orderId, productId, userId],
+              (err, existingReview) => {
+                if (err) {
+                  console.error('Error checking for existing review:', err);
+                  return cb(err);
+                }
+                
+                if (existingReview) {
+                  console.log(`❌ Review already exists for order ${orderId}, product ${productId}`);
+                  console.log('Existing review:', existingReview);
+                  return cb(null, false);
+                }
+                
+                console.log('✅ No existing review found');
+                console.log('=== Review Permission Check: APPROVED ===\n');
+                cb(null, true);
+              }
+            );
+          }
+        );
+      }
+    );
   }
 };

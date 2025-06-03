@@ -71,8 +71,11 @@
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .orderCard:hover {
@@ -96,35 +99,36 @@
 }
 
 .statusBadge {
-  padding: 4px 12px;
+  padding: 0.25rem 0.75rem;
   border-radius: 12px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 500;
+  text-transform: capitalize;
 }
 
-/* Status colors */
 .statusBadge.pending {
-  background: #fff3cd;
+  background-color: #fff3cd;
   color: #856404;
 }
 
-.statusBadge.paid {
-  background: #cce5ff;
+.statusBadge.paid,
+.statusBadge.processing {
+  background-color: #cce5ff;
   color: #004085;
 }
 
 .statusBadge.shipped {
-  background: #e2e3e5;
-  color: #383d41;
+  background-color: #d1ecf1;
+  color: #0c5460;
 }
 
 .statusBadge.delivered {
-  background: #d4edda;
+  background-color: #d4edda;
   color: #155724;
 }
 
 .statusBadge.cancelled {
-  background: #f8d7da;
+  background-color: #f8d7da;
   color: #721c24;
 }
 
@@ -192,15 +196,144 @@
 }
 
 /* Order total */
-.orderTotal {
+.orderFooter {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  background: #f9f9f9;
+  margin-top: 1rem;
+  padding-top: 1rem;
   border-top: 1px solid #eee;
-  font-weight: 600;
+}
+
+.orderTotal {
+  font-weight: 500;
   font-size: 1.1rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.viewDetailsButton {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.viewDetailsButton:hover {
+  background-color: #45a049;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: #4CAF50;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.5rem 0;
+}
+
+.backButton:hover {
+  text-decoration: underline;
+}
+
+/* Review section */
+.reviewSection {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #eee;
+}
+
+.reviewSection h3 {
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.reviewForm {
+  background: #f9f9f9;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.reviewForm textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  min-height: 100px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.reviewForm button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.reviewForm button:hover {
+  background-color: #45a049;
+}
+
+.reviewForm button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Review list */
+.reviewList {
+  margin-top: 1.5rem;
+}
+
+.reviewItem {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+}
+
+.reviewHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.reviewUser {
+  font-weight: 600;
+  color: #333;
+}
+
+.reviewDate {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.reviewRating {
+  color: #FFD700;
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.reviewText {
+  color: #333;
+  line-height: 1.5;
+  margin: 0;
 }
 
 .totalAmount {

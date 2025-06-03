@@ -7,8 +7,33 @@ const app = express();
 const PORT = 4000;
 const JWT_SECRET = 'your_jwt_secret';
 
-app.use(cors());
+// Enable CORS for all routes
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
 app.use(express.json());
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  db.get('SELECT 1', (err) => {
+    if (err) {
+      console.error('Database connection error:', err);
+      return res.status(500).json({ status: 'error', message: 'Database connection failed' });
+    }
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+});
 
 // Middleware log
 app.use((req, res, next) => {
@@ -18,20 +43,32 @@ app.use((req, res, next) => {
 
 // JWT Auth Middleware
 function auth(req, res, next) {
+  console.log(`[AUTH] ${req.method} ${req.url}`);
+  console.log('[AUTH] Headers:', JSON.stringify(req.headers, null, 2));
+  
   const authHeader = req.headers.authorization;
   if (!authHeader) {
     console.log('[AUTH] No Authorization header');
     return res.status(401).json({ error: 'No token' });
   }
+  
   const token = authHeader.split(' ')[1];
-  console.log('[AUTH] Got token:', token);
+  if (!token) {
+    console.log('[AUTH] No token in Authorization header');
+    return res.status(401).json({ error: 'No token provided' });
+  }
+  
+  console.log('[AUTH] Verifying token...');
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    console.log('[AUTH] Token verified. User:', JSON.stringify(decoded, null, 2));
+    console.log(`[AUTH] User ID from token: ${decoded.id}, Type: ${typeof decoded.id}`);
     req.user = decoded;
     next();
   } catch (e) {
-    console.log('[AUTH] Invalid token:', token, '| Error:', e.message);
-    return res.status(401).json({ error: 'Invalid token' });
+    console.error('[AUTH] Token verification failed:', e.message);
+    console.error('[AUTH] Token content:', token);
+    return res.status(401).json({ error: 'Invalid token', details: e.message });
   }
 }
 
@@ -179,6 +216,134 @@ app.put('/change-password', auth, (req, res) => {
 // GET /products (ดึงจาก sqlite ถ้าไม่มีรูปให้ใช้ mockup)
 const axios = require('axios');
 const MOCK_IMAGE = 'https://via.placeholder.com/200x200?text=No+Image';
+
+// --- REVIEW ENDPOINTS ---
+
+// Submit a review for a product in an order
+app.post('/api/reviews', auth, (req, res) => {
+  try {
+    console.log('=== Review Submission ===');
+    console.log('User:', { id: req.user.id, email: req.user.email });
+    console.log('Request body:', req.body);
+    
+    const { order_id, product_id, rating, comment } = req.body;
+    
+    // Validate input
+    if (!order_id || !product_id || typeof rating !== 'number' || rating < 1 || rating > 5) {
+      const error = 'ข้อมูลรีวิวไม่ถูกต้อง';
+      console.error('Validation failed:', { order_id, product_id, rating });
+      return res.status(400).json({ 
+        success: false,
+        error 
+      });
+    }
+
+    // Check if user can review this product in this order
+    console.log(`Checking review permission for order ${order_id}, product ${product_id}, user ${req.user.id}`);
+    db.canUserReviewProduct(order_id, product_id, req.user.id, (err, canReview) => {
+      if (err) {
+        console.error('Error checking review permission:', err);
+        return res.status(500).json({ 
+          success: false,
+          error: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์',
+          details: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
+      }
+      
+      if (!canReview) {
+        console.error('Review not allowed:', { order_id, product_id, userId: req.user.id });
+        return res.status(403).json({ 
+          success: false,
+          error: 'ไม่สามารถรีวิวสินค้านี้ได้' 
+        });
+      }
+
+      console.log('Permission granted, adding review...');
+      
+      // Add the review
+      db.addReview({
+        order_id,
+        product_id,
+        user_id: req.user.id,
+        rating,
+        comment: comment || null
+      }, (err, result) => {
+        if (err) {
+          console.error('Error adding review:', err);
+          return res.status(500).json({ 
+            success: false,
+            error: err.message || 'เกิดข้อผิดพลาดในการบันทึกรีวิว',
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined
+          });
+        }
+        
+        console.log('Review added successfully:', result);
+        
+        res.status(201).json({ 
+          success: true, 
+          message: 'บันทึกรีวิวเรียบร้อยแล้ว',
+          reviewId: result.id,
+          warning: result.warning
+        });
+      });
+    });
+  } catch (error) {
+    console.error('Unexpected error in review submission:', error);
+    res.status(500).json({
+      success: false,
+      error: 'เกิดข้อผิดพลาดที่ไม่คาดคิด',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Get reviews for a product
+app.get('/api/products/:productId/reviews', (req, res) => {
+  const { productId } = req.params;
+  
+  db.getProductReviews(productId, (err, reviews) => {
+    if (err) {
+      console.error('Error fetching reviews:', err);
+      return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการดึงข้อมูลรีวิว' });
+    }
+    
+    res.json(reviews || []);
+  });
+});
+
+// Get user's reviews for an order
+app.get('/api/orders/:orderId/reviews', auth, (req, res) => {
+  const { orderId } = req.params;
+  
+  db.getOrderReviewsByUser(orderId, req.user.id, (err, reviews) => {
+    if (err) {
+      console.error('Error fetching order reviews:', err);
+      return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการดึงข้อมูลรีวิว' });
+    }
+    
+    // Create a map of product_id to review for easy lookup
+    const reviewMap = {};
+    (reviews || []).forEach(review => {
+      reviewMap[review.product_id] = review;
+    });
+    
+    res.json(reviewMap);
+  });
+});
+
+// Check if user can review a product in an order
+app.get('/api/orders/:orderId/products/:productId/can-review', auth, (req, res) => {
+  const { orderId, productId } = req.params;
+  
+  db.canUserReviewProduct(orderId, productId, req.user.id, (err, canReview) => {
+    if (err) {
+      console.error('Error checking review permission:', err);
+      return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์' });
+    }
+    
+    res.json({ canReview });
+  });
+});
 // Debug endpoint to check products table structure
 app.get('/debug/products/table-structure', (req, res) => {
   db.all("PRAGMA table_info(products)", [], (err, columns) => {
