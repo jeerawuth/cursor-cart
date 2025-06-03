@@ -338,9 +338,11 @@ const AdminProductManager = () => {
                   max="5"
                   name="rating.rate"
                   value={form.rating.rate}
-                  onChange={handleChange}
-                  className={styles.input}
+                  readOnly
+                  disabled
+                  className={`${styles.input} ${styles.readOnlyInput}`}
                 />
+                <p className={styles.hint}>* ระบบคำนวณเรตติ้งอัตโนมัติจากรีวิว</p>
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.label}>จำนวนรีวิว</label>
@@ -349,9 +351,11 @@ const AdminProductManager = () => {
                   min="0"
                   name="rating.count"
                   value={form.rating.count}
-                  onChange={handleChange}
-                  className={styles.input}
+                  readOnly
+                  disabled
+                  className={`${styles.input} ${styles.readOnlyInput}`}
                 />
+                <p className={styles.hint}>* ระบบนับจำนวนรีวิวอัตโนมัติ</p>
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.label}>จำนวนสต๊อก</label>
