@@ -226,7 +226,7 @@ app.post('/api/reviews', auth, (req, res) => {
     console.log('User:', { id: req.user.id, email: req.user.email });
     console.log('Request body:', req.body);
     
-    const { order_id, product_id, rating, comment } = req.body;
+    const { order_id, product_id, rating, comment, is_anonymous = false } = req.body;
     
     // Validate input
     if (!order_id || !product_id || typeof rating !== 'number' || rating < 1 || rating > 5) {
@@ -266,7 +266,8 @@ app.post('/api/reviews', auth, (req, res) => {
         product_id,
         user_id: req.user.id,
         rating,
-        comment: comment || null
+        comment: comment || null,
+        is_anonymous: Boolean(is_anonymous)  // Ensure it's a boolean value
       }, (err, result) => {
         if (err) {
           console.error('Error adding review:', err);
@@ -412,8 +413,17 @@ app.get('/products/:id', (req, res) => {
       ...product,
       name: product.title, // Map title to name for frontend
       image_url: product.image || MOCK_IMAGE, // Use image_url for frontend
-      stock_quantity: product.stock_quantity || 0 // Add stock_quantity if not exists
+      stock_quantity: product.stock_quantity || 0, // Add stock_quantity if not exists
+      // Include rating information in the format expected by the frontend
+      rating: {
+        rate: product.rating_rate || 0,
+        count: product.rating_count || 0
+      }
     };
+    
+    // Also include the rating at the root level for backward compatibility
+    formattedProduct.rating_rate = product.rating_rate || 0;
+    formattedProduct.rating_count = product.rating_count || 0;
     
     res.json(formattedProduct);
   });
@@ -613,12 +623,20 @@ app.get('/orders', auth, (req, res) => {
         orders[row.id].items.push({
           id: row.item_id,
           product_id: row.product_id,
+          product_title: row.product_title,
+          product_image: row.product_image,
           quantity: row.quantity,
           price: row.price
         });
       }
     });
-    res.json(Object.values(orders));
+    
+    // Convert to array and sort by created_at in descending order
+    const sortedOrders = Object.values(orders).sort((a, b) => {
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+    
+    res.json(sortedOrders);
   });
 });
 
@@ -741,8 +759,16 @@ app.get('/api/reviews', (req, res) => {
       r.order_id,
       r.rating, 
       r.comment, 
-      r.created_at, 
-      u.name as user_name,
+      r.created_at,
+      r.is_anonymous,
+      CASE 
+        WHEN r.is_anonymous = 1 THEN 
+          CASE 
+            WHEN LENGTH(u.name) <= 2 THEN u.name || '***' 
+            ELSE SUBSTR(u.name, 1, 2) || REPLACE(SUBSTR(UPPER(u.name), 3), '.', '*') 
+          END
+        ELSE u.name 
+      END as user_name,
       u.id as user_id,
       p.title as product_name,
       p.id as product_id

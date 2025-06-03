@@ -11,7 +11,8 @@ import {
   FaSpinner,
   FaCheckCircle,
   FaEdit,
-  FaTimes
+  FaTimes,
+  FaUserLock
 } from 'react-icons/fa';
 import axios from 'axios';
 import styles from './AdminReviews.module.css';
@@ -241,8 +242,23 @@ const AdminReviews = () => {
                 <tr key={review.id}>
                   <td>
                     <div className={styles.userCell}>
-                      <FaUser className={styles.userIcon} />
-                      <span>{review.user_name}</span>
+                      {review.is_anonymous ? (
+                        <>
+                          <FaUser className={styles.userIcon} style={{ color: '#888' }} />
+                          <span style={{ color: '#888' }}>
+                            {review.user_name}
+                            <span className={styles.anonymousBadge}>
+                              <FaUserLock className={styles.lockIcon} />
+                              ไม่ระบุชื่อ
+                            </span>
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <FaUser className={styles.userIcon} />
+                          <span>{review.user_name}</span>
+                        </>
+                      )}
                     </div>
                   </td>
                   <td className={styles.productCell}>

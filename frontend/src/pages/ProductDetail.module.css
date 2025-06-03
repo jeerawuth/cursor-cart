@@ -28,6 +28,13 @@
   color: #333;
 }
 
+.ratingContainer {
+  margin: 1rem 0;
+  padding: 0.8rem 0;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+}
+
 .description {
   color: #666;
   line-height: 1.6;
@@ -80,6 +87,145 @@ button:hover {
   text-align: center;
   padding: 2rem;
   font-size: 1.2rem;
+}
+
+.reviewsSection {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #eee;
+}
+
+.reviewsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.reviewsHeader h3 {
+  font-size: 1.5rem;
+  margin: 0;
+  color: #2c3e50;
+}
+
+.reviewCountBadge {
+  background-color: #f0f0f0;
+  color: #555;
+  padding: 0.3rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.reviewsContainer {
+  position: relative;
+  max-height: 600px; /* Adjust based on your needs */
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f5f5f5;
+}
+
+/* Custom scrollbar for WebKit browsers */
+.reviewsContainer::-webkit-scrollbar {
+  width: 6px;
+}
+
+.reviewsContainer::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+.reviewsContainer::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 3px;
+}
+
+.reviewsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-right: 0.5rem;
+}
+
+.reviewItem {
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.reviewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.userIcon {
+  font-size: 1.8rem;
+  color: #7f8c8d;
+}
+
+.userName {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.userName.anonymousName {
+  color: #7f8c8d;
+}
+
+.userName.anonymousName::before {
+  content: '🔒';
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* Keep these styles in case they're used elsewhere */
+.anonymousBadge {
+  background-color: #f0f0f0;
+  color: #7f8c8d;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+}
+
+.reviewMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.reviewDate {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+}
+
+.reviewComment {
+  color: #34495e;
+  line-height: 1.6;
+  margin: 0;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.errorText {
+  color: #e74c3c;
+  margin: 1rem 0;
 }
 
 .popup {

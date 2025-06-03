@@ -100,6 +100,77 @@
   background-color: #45a049;
 }
 
+/* Checkbox Styles */
+.checkboxLabel {
+  display: flex;
+  position: relative;
+  padding-left: 35px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  align-items: center;
+  user-select: none;
+}
+
+.checkboxInput {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 22px;
+  width: 22px;
+  background-color: #eee;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.checkboxLabel:hover .checkboxInput ~ .checkmark {
+  background-color: #ddd;
+}
+
+.checkboxLabel .checkboxInput:checked ~ .checkmark {
+  background-color: #4CAF50;
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.checkboxLabel .checkboxInput:checked ~ .checkmark:after {
+  display: block;
+}
+
+.checkboxLabel .checkmark:after {
+  left: 8px;
+  top: 4px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkboxText {
+  margin-left: 8px;
+  color: #555;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.checkboxInput:disabled ~ .checkmark,
+.checkboxInput:disabled ~ .checkboxText {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .primaryButton:disabled {
   background-color: #a5d6a7;
   cursor: not-allowed;
@@ -336,23 +407,75 @@
 .orderItem {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 1rem 0;
+  align-items: flex-start;
+  padding: 1.25rem 0;
   border-bottom: 1px solid #f0f0f0;
+  gap: 1rem;
+}
+
+.orderItem:last-child {
+  border-bottom: none;
 }
 
 .orderItemInfo {
   flex: 1;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.orderItemImage {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f8f9fa;
+  border: 1px solid #eee;
+}
+
+.orderItemImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.orderItemDetails {
+  flex: 1;
+  min-width: 0; /* Prevents flex item from overflowing */
 }
 
 .orderItemTitle {
   font-weight: 500;
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+  font-size: 1rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.orderItemMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 0.25rem;
 }
 
-.orderItemPrice {
+.orderItemQuantity {
   color: #666;
   font-size: 0.9rem;
+}
+
+.orderItemPrice {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.orderItemUnitPrice {
+  color: #888;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
 }
 
 .reviewedBadge {

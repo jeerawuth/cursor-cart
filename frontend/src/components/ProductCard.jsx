@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useAdminMode } from '../context/AdminModeContext';
+import Rating from './Rating';
 import styles from './ProductCard.module.css';
 
 const ProductCard = ({ product, onAddToCart }) => {
@@ -24,6 +25,11 @@ const ProductCard = ({ product, onAddToCart }) => {
       <div className={styles.cardBody}>
         <h3 className={styles.productTitle}>{product.title}</h3>
         <p className={styles.productPrice}>{product.price.toLocaleString()} บาท</p>
+        <Rating 
+          rating={product.rating} 
+          size="small" 
+          showCount={false}
+        />
         <div className={styles.cardActions}>
           <a href={`/product/${product.id}`} className={styles.viewDetailsBtn}>
             ดูรายละเอียด

@@ -117,12 +117,32 @@ const OrderDetails = ({ order, onReviewSubmit }) => {
               return (
                 <div key={item.id} className={styles.orderItem}>
                   <div className={styles.orderItemInfo}>
-                    <div className={styles.orderItemTitle}>
-                      {item.title}
-                      {item.quantity > 1 && ` (${item.quantity} ชิ้น)`}
+                    <div className={styles.orderItemImage}>
+                      <img 
+                        src={item.product_image || 'https://via.placeholder.com/80x80?text=No+Image'} 
+                        alt={item.product_title || 'สินค้า'}
+                        className={styles.productImage}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://via.placeholder.com/80x80?text=No+Image';
+                        }}
+                      />
                     </div>
-                    <div className={styles.orderItemPrice}>
-                      ฿{item.price.toLocaleString()}
+                    <div className={styles.orderItemDetails}>
+                      <div className={styles.orderItemTitle}>
+                        {item.product_title || 'สินค้าไม่ระบุชื่อ'}
+                      </div>
+                      <div className={styles.orderItemMeta}>
+                        <span className={styles.orderItemQuantity}>จำนวน: {item.quantity} ชิ้น</span>
+                        <span className={styles.orderItemPrice}>
+                          ฿{(item.price * item.quantity).toLocaleString()}
+                        </span>
+                      </div>
+                      {item.price && item.quantity > 1 && (
+                        <div className={styles.orderItemUnitPrice}>
+                          (฿{item.price.toLocaleString()} ต่อชิ้น)
+                        </div>
+                      )}
                     </div>
                   </div>
                   

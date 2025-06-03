@@ -6,6 +6,7 @@ import styles from '../pages/Profile.module.css';
 const ReviewModal = ({ isOpen, onClose, orderId, product, onSubmit }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   
@@ -18,6 +19,7 @@ const ReviewModal = ({ isOpen, onClose, orderId, product, onSubmit }) => {
       // Reset form when modal is closed
       setRating(0);
       setComment('');
+      setIsAnonymous(false);
       setError('');
     }
   }, [isOpen]);
@@ -55,7 +57,8 @@ const ReviewModal = ({ isOpen, onClose, orderId, product, onSubmit }) => {
           order_id: orderId,
           product_id: productId,
           rating,
-          comment: comment.trim() || null
+          comment: comment.trim() || null,
+          is_anonymous: isAnonymous
         },
         {
           headers: { 
@@ -144,6 +147,20 @@ const ReviewModal = ({ isOpen, onClose, orderId, product, onSubmit }) => {
               maxLength="500"
               disabled={isSubmitting}
             />
+          </div>
+          
+          <div className={styles.formGroup}>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={isAnonymous}
+                onChange={(e) => setIsAnonymous(e.target.checked)}
+                disabled={isSubmitting}
+                className={styles.checkboxInput}
+              />
+              <span className={styles.checkmark}></span>
+              <span className={styles.checkboxText}>ไม่แสดงชื่อผู้รีวิว (จะแสดงเป็นตัวอักษร 2 ตัวแรกตามด้วย ***)</span>
+            </label>
           </div>
           
           <div className={styles.buttonGroup}>

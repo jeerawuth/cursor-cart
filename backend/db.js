@@ -130,7 +130,34 @@ const reviewTableSql = `CREATE TABLE IF NOT EXISTS reviews (
 
 db.run(reviewTableSql, (err) => {
   if (err) console.error('Error creating reviews table:', err.message);
-  else console.log('Reviews table created or already exists');
+  else {
+    console.log('Reviews table created or already exists');
+    
+    // Add is_anonymous column if it doesn't exist
+    db.run(`
+      PRAGMA table_info(reviews);
+    `, [], (err, columns) => {
+      if (err) {
+        console.error('Error checking reviews table columns:', err.message);
+        return;
+      }
+      
+      const hasIsAnonymous = columns && columns.some(col => col.name === 'is_anonymous');
+      if (!hasIsAnonymous) {
+        console.log('Adding is_anonymous column to reviews table...');
+        db.run(`
+          ALTER TABLE reviews 
+          ADD COLUMN is_anonymous BOOLEAN DEFAULT 0
+        `, (err) => {
+          if (err) {
+            console.error('Error adding is_anonymous column:', err.message);
+          } else {
+            console.log('Successfully added is_anonymous column to reviews table');
+          }
+        });
+      }
+    });
+  }
 });
 db.run(orderTableSql, (err) => {
   if (err) console.error('Error creating orders table:', err.message);
@@ -381,9 +408,17 @@ module.exports = {
   // ดูคำสั่งซื้อทั้งหมดของผู้ใช้
   getOrdersByUser(userId, cb) {
     db.all(
-      `SELECT o.*, oi.id as item_id, oi.product_id, oi.quantity, oi.price
+      `SELECT 
+         o.*, 
+         oi.id as item_id, 
+         oi.product_id, 
+         oi.quantity, 
+         oi.price,
+         p.title as product_title,
+         p.image as product_image
        FROM orders o
        LEFT JOIN order_items oi ON o.id = oi.order_id
+       LEFT JOIN products p ON oi.product_id = p.id
        WHERE o.user_id = ?
        ORDER BY o.created_at DESC, oi.id ASC`,
       [userId],
@@ -746,7 +781,7 @@ module.exports = {
   // --- REVIEW SYSTEM ---
   // Add a review for a product in an order
   addReview(review, cb) {
-    const { order_id, product_id, user_id, rating, comment } = review;
+    const { order_id, product_id, user_id, rating, comment, is_anonymous = false } = review;
     
     console.log('=== Starting addReview ===');
     console.log('Review data:', { order_id, product_id, user_id, rating, comment });
@@ -792,17 +827,15 @@ module.exports = {
               user_id, 
               rating, 
               comment, 
+              is_anonymous,
               created_at
-            ) VALUES (?, ?, ?, ?, ?, datetime('now'))
+            ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
           `;
           
           console.log('Executing SQL:', sql);
           console.log('With values:', { order_id, product_id, user_id, rating, comment });
           
-          db.run(
-            sql,
-            [order_id, product_id, user_id, rating, comment],
-            function(err) {
+          db.run(sql, [order_id, product_id, user_id, rating, comment, is_anonymous ? 1 : 0], function(err) {
               if (err) {
                 console.error('❌ Error inserting review:', err);
                 return cb(err);
@@ -864,22 +897,111 @@ module.exports = {
   // Get reviews for a product
   getProductReviews(productId, cb) {
     db.all(
-      `SELECT r.*, u.name as user_name 
+      `SELECT 
+          r.*, 
+          u.name as original_name,
+          CASE 
+            WHEN r.is_anonymous = 1 THEN 
+              CASE 
+                WHEN LENGTH(u.name) <= 2 THEN u.name || '***' 
+                ELSE SUBSTR(u.name, 1, 2) || '***'
+              END
+            ELSE u.name 
+          END as user_name,
+          r.is_anonymous
        FROM reviews r 
        JOIN users u ON r.user_id = u.id 
        WHERE r.product_id = ? 
        ORDER BY r.created_at DESC`,
       [productId],
-      cb
+      (err, reviews) => {
+        if (err) {
+          console.error('Error getting product reviews:', err);
+          return cb(err);
+        }
+        
+        console.log('Raw reviews from database:', JSON.stringify(reviews, null, 2));
+        
+        // Process reviews to ensure consistent data format
+        const processedReviews = reviews.map(review => {
+          // Ensure is_anonymous is a boolean
+          const isAnonymous = Boolean(review.is_anonymous);
+          
+          // If anonymous, ensure the name is properly masked
+          let displayName = review.user_name;
+          if (isAnonymous && review.original_name) {
+            if (review.original_name.length <= 2) {
+              displayName = review.original_name.substring(0, 2) + '***';
+            } else {
+              displayName = review.original_name.substring(0, 2) + '***';
+            }
+          }
+          
+          return {
+            ...review,
+            user_name: displayName,
+            is_anonymous: isAnonymous
+          };
+        });
+        
+        console.log('Processed reviews:', JSON.stringify(processedReviews, null, 2));
+        cb(null, processedReviews);
+      }
     );
   },
 
   // Get user's reviews for an order
   getOrderReviewsByUser(orderId, userId, cb) {
     db.all(
-      'SELECT * FROM reviews WHERE order_id = ? AND user_id = ?',
+      `SELECT 
+          r.*, 
+          u.name as original_name,
+          CASE 
+            WHEN r.is_anonymous = 1 THEN 
+              CASE 
+                WHEN LENGTH(u.name) <= 2 THEN u.name || '***' 
+                ELSE SUBSTR(u.name, 1, 2) || '***'
+              END
+            ELSE u.name 
+          END as user_name,
+          r.is_anonymous
+       FROM reviews r 
+       JOIN users u ON r.user_id = u.id 
+       WHERE r.order_id = ? AND r.user_id = ?`,
       [orderId, userId],
-      cb
+      (err, reviews) => {
+        if (err) {
+          console.error('Error getting order reviews by user:', err);
+          return cb(err);
+        }
+        
+        console.log('Raw order reviews from database:', JSON.stringify(reviews, null, 2));
+        
+        // Process reviews to ensure consistent data format
+        const processedReviews = reviews.map(review => {
+          // Ensure is_anonymous is a boolean
+          const isAnonymous = Boolean(review.is_anonymous);
+          
+          // If anonymous, ensure the name is properly masked
+          let displayName = review.user_name;
+          if (isAnonymous && review.original_name) {
+            if (review.original_name.length <= 2) {
+              displayName = review.original_name.substring(0, 2) + '***';
+            } else {
+              displayName = review.original_name.substring(0, 2) + '***';
+            }
+          }
+          
+          return {
+            ...review,
+            user_name: displayName,
+            is_anonymous: isAnonymous
+          };
+        });
+        
+        console.log('Processed order reviews:', JSON.stringify(processedReviews, null, 2));
+        cb(null, processedReviews);
+      }
     );
   },
 
